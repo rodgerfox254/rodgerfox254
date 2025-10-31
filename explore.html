@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Time Shop Save — Explore</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/a2d9b9f0d4.js" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg1:#070416;
+      --accent:#7b2ff7;
+      --text:#eaf3ff;
+      --muted:rgba(234,243,255,0.65);
+      --card-bg:rgba(255,255,255,0.03);
+      --card-shadow:0 6px 20px rgba(11,9,26,0.6);
+      --accent-grad:linear-gradient(90deg,#7b2ff7,#ff6ec7,#2be7ff);
+      --active:#2be72b;
+      --offline:#ff4b4b;
+    }
+
+    html,body {
+      height:100%;
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;
+      color:var(--text);
+      background:var(--bg1);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    * {box-sizing:border-box;}
+    a {color:inherit;text-decoration:none;}
+
+    header {
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      position:sticky;
+      top:0;
+      background:var(--bg1);
+      z-index:10;
+      border-bottom:1px solid rgba(255,255,255,0.05);
+    }
+    header h1 {
+      margin:0;
+      font-size:18px;
+      background:var(--accent-grad);
+      -webkit-background-clip:text;
+      color:transparent;
+    }
+
+    .search-bar {
+      display:flex;
+      align-items:center;
+      background:rgba(255,255,255,0.05);
+      padding:8px 12px;
+      border-radius:12px;
+      margin:12px 16px;
+      box-shadow:inset 0 0 8px rgba(255,255,255,0.08);
+      gap:8px;
+    }
+    .search-bar input {
+      flex:1;
+      background:transparent;
+      border:none;
+      color:var(--text);
+      font-size:14px;
+      outline:none;
+    }
+    .search-bar i {
+      color:var(--muted);
+      font-size:14px; /* Reduced icon size */
+    }
+    .search-btn {
+      background:var(--accent-grad);
+      border:none;
+      border-radius:8px;
+      color:#071126;
+      font-weight:600;
+      font-size:12px;
+      padding:6px 10px;
+      cursor:pointer;
+      transition:transform 0.2s;
+    }
+    .search-btn:hover {transform:scale(1.05);}
+
+    .categories {
+      display:flex;
+      overflow-x:auto;
+      padding:12px 16px;
+      gap:12px;
+      scrollbar-width:none;
+    }
+    .categories::-webkit-scrollbar {display:none;}
+    .category {
+      flex:0 0 auto;
+      width:80px;
+      height:80px;
+      background:var(--card-bg);
+      border-radius:16px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      box-shadow:var(--card-shadow);
+      text-align:center;
+      font-size:12px;
+      transition:all 0.25s;
+    }
+    .category:hover {
+      transform:translateY(-4px) scale(1.03);
+      background:var(--accent-grad);
+      color:#071126;
+    }
+    .category i {
+      font-size:22px;
+      margin-bottom:6px;
+      color:var(--accent);
+    }
+
+    .shops {
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+      gap:12px;
+      padding:12px 16px 80px;
+    }
+    .shop-card {
+      background:var(--card-bg);
+      border-radius:16px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      position:relative;
+      box-shadow:var(--card-shadow);
+      transition:all 0.3s;
+      cursor:pointer;
+    }
+    .shop-card:hover {
+      transform:translateY(-4px);
+      box-shadow:0 8px 30px rgba(0,0,0,0.5);
+    }
+    .shop-card img {
+      width:64px;
+      height:64px;
+      border-radius:12px;
+      margin-bottom:8px;
+      object-fit:cover;
+      border:2px solid rgba(255,255,255,0.1);
+    }
+    .shop-card.offline {opacity:0.75;}
+    .shop-name {font-size:14px;font-weight:600;margin-bottom:4px;text-align:center;}
+    .shop-category {font-size:12px;color:var(--muted);margin-bottom:6px;text-align:center;}
+    .status-badge {
+      position:absolute;
+      top:8px;
+      right:8px;
+      padding:3px 7px;
+      border-radius:8px;
+      font-size:10px;
+      color:#071126;
+      font-weight:600;
+    }
+    .notify-btn {
+      padding:5px 7px;
+      border:none;
+      border-radius:8px;
+      background:var(--accent-grad);
+      color:#071126;
+      font-size:11px;
+      cursor:pointer;
+      margin-top:4px;
+      transition:0.2s;
+    }
+    .notify-btn:hover {transform:scale(1.05);}
+
+    .bottom-nav {
+      position:fixed;
+      bottom:0;
+      width:100%;
+      display:flex;
+      justify-content:space-around;
+      background:rgba(7,4,22,0.9);
+      padding:8px 0;
+      border-top:1px solid rgba(255,255,255,0.05);
+      backdrop-filter:blur(10px);
+      z-index:15;
+    }
+    .bottom-nav a {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      font-size:12px;
+      color:var(--muted);
+      transition:color 0.2s;
+    }
+    .bottom-nav a.active {
+      color:var(--accent);
+      font-weight:600;
+    }
+    .bottom-nav i {font-size:18px;margin-bottom:2px;}
+  </style>
+</head>
+<body>
+
+<header><h1>Explore Shops</h1></header>
+
+<div class="search-bar">
+  <i class="fas fa-search"></i>
+  <input type="text" id="searchInput" placeholder="Search shops..." />
+  <button class="search-btn" id="searchBtn">Search</button>
+</div>
+
+<div class="categories" id="categories"></div>
+<div class="shops" id="shopContainer"></div>
+
+<div class="bottom-nav">
+  <a href="index.html"><i class="fas fa-home"></i>Home</a>
+  <a href="explore.html" class="active"><i class="fas fa-compass"></i>Explore</a>
+  <a href="orders.html"><i class="fas fa-box-open"></i>Orders</a>
+  <a href="profile.html"><i class="fas fa-user"></i>Profile</a>
+</div>
+
+<script>
+// === CATEGORY LIST ===
+const categoriesData = [
+  {name:'All', icon:'fas fa-globe'},
+  {name:'Grocery', icon:'fas fa-apple-alt'},
+  {name:'Electronics', icon:'fas fa-tv'},
+  {name:'Fashion', icon:'fas fa-tshirt'},
+  {name:'Pharmacy', icon:'fas fa-pills'},
+  {name:'Bakery', icon:'fas fa-bread-slice'},
+  {name:'Restaurants', icon:'fas fa-utensils'},
+  {name:'Beauty', icon:'fas fa-magic'},
+  {name:'Sports', icon:'fas fa-football-ball'},
+  {name:'Books', icon:'fas fa-book'},
+  {name:'Hardware', icon:'fas fa-tools'},
+  {name:'Gifts', icon:'fas fa-gift'},
+  {name:'Mobile', icon:'fas fa-mobile-alt'},
+  {name:'Food', icon:'fas fa-hamburger'}
+];
+
+// === RENDER CATEGORIES ===
+const categoriesContainer = document.getElementById('categories');
+categoriesData.forEach(cat => {
+  const div = document.createElement('div');
+  div.className = 'category';
+  div.innerHTML = `<i class="${cat.icon}"></i><span>${cat.name}</span>`;
+  div.addEventListener('click', () => renderShops(cat.name));
+  categoriesContainer.appendChild(div);
+});
+
+// === FETCH SHOPS DYNAMICALLY ===
+function getShopsFromStorage() {
+  return JSON.parse(localStorage.getItem("shopsData")) || [];
+}
+
+// === RENDER SHOPS ===
+function renderShops(filter = 'All') {
+  const shopContainer = document.getElementById('shopContainer');
+  shopContainer.innerHTML = '';
+
+  const savedShops = getShopsFromStorage();
+
+  const filtered = filter === 'All'
+    ? savedShops
+    : savedShops.filter(s => s.category === filter);
+
+  if (filtered.length === 0) {
+    shopContainer.innerHTML = `<p style="text-align:center;opacity:0.6;">No shops found in this category.</p>`;
+    return;
+  }
+
+  filtered.forEach(shop => {
+    const div = document.createElement('div');
+    div.className = `shop-card ${shop.status === 'Inactive' ? 'offline' : ''}`;
+    div.innerHTML = `
+      <img src="${shop.logo || 'https://via.placeholder.com/64?text=Shop'}" alt="${shop.name}">
+      <div class="shop-name">${shop.name}</div>
+      <div class="shop-category">${shop.category}</div>
+      <div class="status-badge" style="background:${shop.status === 'Active' ? 'var(--active)' : 'var(--offline)'}">
+        ${shop.status}
+      </div>
+    `;
+
+    if (shop.status === 'Inactive') {
+      const btn = document.createElement('button');
+      btn.className = 'notify-btn';
+      btn.innerText = 'Notify me';
+      btn.addEventListener('click', () => alert(`✅ You’ll be notified when ${shop.name} is back online.`));
+      div.appendChild(btn);
+    } else {
+      div.addEventListener('click', () => {
+        localStorage.setItem("currentShop", JSON.stringify(shop));
+        window.location.href = `shop.html?shop=${encodeURIComponent(shop.name)}`;
+      });
+    }
+
+    shopContainer.appendChild(div);
+  });
+}
+
+// === SEARCH FUNCTION ===
+function performSearch() {
+  const term = document.getElementById('searchInput').value.toLowerCase();
+  const savedShops = getShopsFromStorage();
+  const filtered = savedShops.filter(s =>
+    s.name.toLowerCase().includes(term) ||
+    s.category.toLowerCase().includes(term)
+  );
+
+  const shopContainer = document.getElementById('shopContainer');
+  shopContainer.innerHTML = '';
+
+  filtered.forEach(shop => {
+    const div = document.createElement('div');
+    div.className = `shop-card ${shop.status === 'Inactive' ? 'offline' : ''}`;
+    div.innerHTML = `
+      <img src="${shop.logo || 'https://via.placeholder.com/64?text=Shop'}" alt="${shop.name}">
+      <div class="shop-name">${shop.name}</div>
+      <div class="shop-category">${shop.category}</div>
+      <div class="status-badge" style="background:${shop.status === 'Active' ? 'var(--active)' : 'var(--offline)'}">
+        ${shop.status}
+      </div>
+    `;
+
+    if (shop.status === 'Inactive') {
+      const btn = document.createElement('button');
+      btn.className = 'notify-btn';
+      btn.innerText = 'Notify me';
+      btn.addEventListener('click', () => alert(`✅ You’ll be notified when ${shop.name} is active again.`));
+      div.appendChild(btn);
+    } else {
+      div.addEventListener('click', () => {
+        localStorage.setItem("currentShop", JSON.stringify(shop));
+        window.location.href = `shop.html?shop=${encodeURIComponent(shop.name)}`;
+      });
+    }
+
+    shopContainer.appendChild(div);
+  });
+}
+
+document.getElementById('searchBtn').addEventListener('click', performSearch);
+document.getElementById('searchInput').addEventListener('keypress', e => {
+  if(e.key === 'Enter') performSearch();
+});
+
+// === AUTO REFRESH EVERY 3 SECONDS TO KEEP LIVE STATUS ===
+renderShops();
+setInterval(() => renderShops(), 3000);
+</script>
+
+
+</body>
+</html>
