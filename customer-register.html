@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Customer Register — Time Shop Save</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg1:#070416;
+  --g1:#7b2ff7; --g2:#ff6ec7; --g3:#2be7ff;
+  --text:#eaf3ff;
+  --muted:rgba(234,243,255,0.65);
+  --accent:linear-gradient(90deg,var(--g1),var(--g2),var(--g3));
+}
+*{box-sizing:border-box}
+body {
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:var(--bg1);
+  color:var(--text);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.bg {
+  position:absolute;inset:0;
+  background:radial-gradient(600px 300px at 10% 20%, rgba(123,47,247,0.12), transparent),
+             radial-gradient(500px 240px at 90% 80%, rgba(43,231,255,0.08), transparent),
+             linear-gradient(180deg,#05020b 0%, #0b0630 50%, #07132a 100%);
+  z-index:-1;
+}
+.card {
+  width:92%;max-width:440px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:14px;
+  padding:24px 26px;
+  box-shadow:0 8px 30px rgba(0,0,0,0.5);
+  backdrop-filter:blur(10px);
+  position:relative;
+}
+.card h2 {
+  text-align:center;
+  font-size:20px;
+  margin-bottom:14px;
+  background:var(--accent);
+  -webkit-background-clip:text;
+  color:transparent;
+}
+form { display:flex; flex-direction:column; gap:10px; }
+input {
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.08);
+  background:rgba(255,255,255,0.05);
+  color:var(--text);
+  font-size:14px;
+}
+input:focus {outline:none;border-color:var(--g2);}
+button {
+  background:var(--accent);
+  color:#071126;
+  font-weight:700;
+  padding:12px;
+  border:0;
+  border-radius:10px;
+  cursor:pointer;
+}
+button:hover {opacity:0.95;}
+.switch {
+  text-align:center;
+  font-size:13px;
+  color:var(--muted);
+}
+.switch a {color:var(--g3);cursor:pointer;}
+.hidden { display:none !important; }
+.back-btn {
+  position:absolute;
+  top:12px;
+  left:12px;
+  background:rgba(255,255,255,0.05);
+  border:none;
+  color:var(--text);
+  border-radius:50%;
+  width:36px;height:36px;
+  font-size:18px;
+  cursor:pointer;
+}
+.back-btn:hover {background:rgba(255,255,255,0.1);}
+.error {
+  text-align:center;
+  color:#ff4d4d;
+  font-size:13px;
+  margin-top:4px;
+}
+.success {
+  text-align:center;
+  color:#55ff99;
+  font-size:13px;
+  margin-top:4px;
+}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<div class="card">
+  <button class="back-btn" onclick="window.location.href='customer-login.html'" title="Back">←</button>
+  <h2>Customer Registration</h2>
+
+  <form id="registerForm">
+    <input id="fullName" type="text" placeholder="Full Name" required>
+    <input id="email" type="email" placeholder="Email" required>
+    <input id="phone" type="tel" placeholder="Phone Number" required>
+    <input id="password" type="password" placeholder="Password" required>
+    <button type="submit" id="registerBtn">Create Account</button>
+    <div id="msg" class="error hidden"></div>
+    <div id="success" class="success hidden"></div>
+    <div class="switch">Already have an account? <a href="customer-login.html">Login</a></div>
+  </form>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js"></script>
+
+<script>
+// ✅ Replace with your Firebase config
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const form = document.getElementById("registerForm");
+const msg = document.getElementById("msg");
+const success = document.getElementById("success");
+
+form.addEventListener("submit", async e => {
+  e.preventDefault();
+  msg.classList.add("hidden");
+  success.classList.add("hidden");
+
+  const name = document.getElementById("fullName").value.trim();
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const phone = document.getElementById("phone").value.trim();
+  const password = document.getElementById("password").value;
+
+  if (!name || !email || !phone || !password) {
+    msg.textContent = "Please fill all fields.";
+    msg.classList.remove("hidden");
+    return;
+  }
+
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, password);
+    const uid = cred.user.uid;
+
+    await db.collection("users").doc(uid).set({
+      name: name,
+      email: email,
+      phone: phone,
+      role: "customer",
+      dateRegistered: new Date().toISOString()
+    });
+
+    success.textContent = "Registration successful! Redirecting...";
+    success.classList.remove("hidden");
+
+    setTimeout(() => {
+      window.location.href = "customer-profile.html";
+    }, 1500);
+
+  } catch (err) {
+    msg.classList.remove("hidden");
+    if (err.code === "auth/email-already-in-use") {
+      msg.textContent = "This email is already registered.";
+    } else if (err.code === "auth/weak-password") {
+      msg.textContent = "Password should be at least 6 characters.";
+    } else {
+      msg.textContent = err.message;
+    }
+  }
+});
+</script>
+</body>
+</html>
