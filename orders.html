@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Orders — Time Shop Save</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/a2d9b9f0d4.js" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg1:#070416;
+      --accent:#7b2ff7;
+      --text:#eaf3ff;
+      --muted:rgba(234,243,255,0.7);
+      --card-bg:rgba(255,255,255,0.04);
+      --accent-grad:linear-gradient(90deg,#7b2ff7,#ff6ec7,#2be7ff);
+      --active:#2be72b;
+      --offline:#ff4b4b;
+    }
+    body {
+      margin:0;
+      font-family:Inter,system-ui;
+      color:var(--text);
+      background:var(--bg1);
+      overflow-y:auto;
+    }
+    header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 16px;
+      border-bottom:1px solid rgba(255,255,255,0.1);
+      background:rgba(7,4,22,0.9);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    header h1 {
+      margin:0;
+      font-size:18px;
+      background:var(--accent-grad);
+      -webkit-background-clip:text;
+      color:transparent;
+      font-weight:700;
+    }
+    .back-btn {
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:15px;
+      color:var(--muted);
+      background:none;
+      border:none;
+      cursor:pointer;
+      transition:all 0.3s;
+    }
+    .back-btn:hover {
+      color:var(--accent);
+      transform:translateX(-3px);
+    }
+
+    .order-container {
+      padding:16px;
+      padding-bottom:110px;
+    }
+    .order-item {
+      background:var(--card-bg);
+      border-radius:16px;
+      padding:10px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .order-item img {
+      width:70px;
+      height:70px;
+      border-radius:12px;
+      object-fit:cover;
+    }
+    .item-info { flex:1; }
+    .item-info h3 {
+      margin:0;
+      font-size:14px;
+      font-weight:600;
+    }
+    .item-info p {
+      margin:4px 0;
+      color:var(--accent);
+      font-weight:700;
+      font-size:13px;
+    }
+    .remove-btn {
+      background:#ff4b4b;
+      border:none;
+      border-radius:8px;
+      color:#fff;
+      font-size:12px;
+      padding:6px 10px;
+      cursor:pointer;
+    }
+
+    .total {
+      text-align:right;
+      font-size:15px;
+      font-weight:700;
+      color:var(--accent);
+      margin-top:20px;
+    }
+
+    .wallet {
+      background:var(--card-bg);
+      border-radius:16px;
+      padding:14px;
+      margin:20px 16px 90px 16px;
+    }
+    .wallet h2 {
+      font-size:16px;
+      margin:0 0 10px 0;
+    }
+    .wallet-balance {
+      font-size:15px;
+      font-weight:700;
+      color:var(--active);
+    }
+    .wallet-actions {
+      display:flex;
+      gap:10px;
+      margin-top:10px;
+    }
+    .wallet-actions button {
+      flex:1;
+      border:none;
+      border-radius:8px;
+      padding:10px;
+      font-weight:600;
+      cursor:pointer;
+      color:#fff;
+    }
+    .pay-now { background:var(--active); color:#071126; }
+
+    .message {
+      text-align:center;
+      background:var(--card-bg);
+      border-radius:16px;
+      padding:20px;
+      margin:20px 16px;
+      display:none;
+      font-weight:600;
+    }
+
+    .bottom-nav {
+      position:fixed;
+      bottom:0;
+      width:100%;
+      display:flex;
+      justify-content:space-around;
+      background:rgba(7,4,22,0.9);
+      padding:8px 0;
+      border-top:1px solid rgba(255,255,255,0.05);
+      backdrop-filter:blur(10px);
+    }
+    .bottom-nav a {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .bottom-nav a.active { color:var(--accent); }
+    .bottom-nav i { font-size:18px; margin-bottom:2px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <button class="back-btn" id="backBtn"><i class="fas fa-arrow-left"></i> Back</button>
+  <h1>Orders</h1>
+  <span></span>
+</header>
+
+<div class="order-container" id="orderContainer"></div>
+
+<div class="wallet">
+  <h2>Wallet</h2>
+  <div class="wallet-balance">Balance: Ksh <span id="balance">0</span></div>
+  <div class="wallet-actions">
+    <button class="pay-now" onclick="payNow()">Pay Now</button>
+  </div>
+</div>
+
+<div class="message" id="messageBox"></div>
+
+<div class="bottom-nav">
+  <a href="index.html"><i class="fas fa-home"></i>Home</a>
+  <a href="explore.html"><i class="fas fa-compass"></i>Explore</a>
+  <a href="orders.html" class="active"><i class="fas fa-box-open"></i>Orders</a>
+  <a href="profile.html"><i class="fas fa-user"></i>Profile</a>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const shopName = decodeURIComponent(params.get('shop') || localStorage.getItem('currentShop') || 'unknown');
+const cartKey = `cart_${shopName.replace(/\s+/g,'_')}`;
+localStorage.setItem('currentShop', shopName);
+
+let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
+let balance = parseInt(localStorage.getItem("wallet_balance")) || 0;
+
+const container = document.getElementById("orderContainer");
+const balanceElem = document.getElementById("balance");
+const messageBox = document.getElementById("messageBox");
+
+document.getElementById("backBtn").onclick = () => {
+  if (shopName && shopName !== 'unknown') {
+    window.location.href = `shop.html?shop=${encodeURIComponent(shopName)}`;
+  } else {
+    window.location.href = "explore.html";
+  }
+};
+
+function renderCart(){
+  if(cart.length === 0){
+    container.innerHTML = `<p style="text-align:center;margin-top:40px;">🛒 No items in your order.</p>`;
+    return;
+  }
+  container.innerHTML = cart.map((item,i)=>`
+    <div class="order-item">
+      <img src="${item.img}" alt="${item.name}">
+      <div class="item-info">
+        <h3>${item.name}</h3>
+        <p>Ksh ${item.price} × ${item.qty} = <b>Ksh ${(item.price * item.qty).toFixed(2)}</b></p>
+      </div>
+      <button class="remove-btn" onclick="removeItem(${i})">Remove</button>
+    </div>
+  `).join('') + `<div class="total">Total: Ksh ${totalCost().toFixed(2)}</div>`;
+}
+
+function totalCost(){
+  return cart.reduce((sum,item)=> sum + (parseFloat(item.price) * (item.qty || 1)), 0);
+}
+
+function removeItem(i){
+  cart.splice(i,1);
+  localStorage.setItem(cartKey, JSON.stringify(cart));
+  renderCart();
+}
+
+function updateBalance(){
+  balance = parseInt(localStorage.getItem("wallet_balance")) || 0;
+  balanceElem.textContent = balance.toLocaleString();
+}
+updateBalance();
+
+function payNow(){
+  const total = totalCost();
+  if(cart.length === 0){
+    showMessage("No items to pay for.");
+    return;
+  }
+  if(balance < total){
+    showMessage("⚠️ Insufficient funds. Please add more in your Profile.");
+    return;
+  }
+  balance -= total;
+  localStorage.setItem("wallet_balance", balance);
+  updateBalance();
+  localStorage.removeItem(cartKey);
+  cart = [];
+  renderCart();
+  const code = Math.floor(Math.random()*900000+100000);
+  showMessage(`✅ Order successful! Confirmation code: <b>${code}</b><br>Items will be ready for pickup soon.`);
+}
+
+function showMessage(msg){
+  messageBox.innerHTML = msg;
+  messageBox.style.display = "block";
+  setTimeout(()=>{messageBox.style.display="none";},6000);
+}
+
+renderCart();
+
+// keep live sync with profile balance
+window.addEventListener("storage", updateBalance);
+</script>
+</body>
+</html>
