@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>View Shop — Time Shop Save</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/a2d9b9f0d4.js" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg1:#070416;
+      --accent:#7b2ff7;
+      --text:#eaf3ff;
+      --muted:rgba(234,243,255,0.7);
+      --card-bg:rgba(255,255,255,0.04);
+      --accent-grad:linear-gradient(90deg,#7b2ff7,#ff6ec7,#2be7ff);
+      --active:#2be72b;
+      --offline:#ff4b4b;
+    }
+    body {
+      margin:0;
+      font-family:Inter,system-ui;
+      color:var(--text);
+      background:var(--bg1);
+      overflow-y:auto;
+    }
+
+    header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 16px;
+      border-bottom:1px solid rgba(255,255,255,0.1);
+      background:rgba(7,4,22,0.9);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    header h1 {
+      margin:0;
+      font-size:18px;
+      background:var(--accent-grad);
+      -webkit-background-clip:text;
+      color:transparent;
+      font-weight:700;
+    }
+    .back-btn {
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:15px;
+      color:var(--muted);
+      background:none;
+      border:none;
+      cursor:pointer;
+      transition:all 0.3s;
+    }
+    .back-btn:hover {
+      color:var(--accent);
+      transform:translateX(-3px);
+    }
+
+    .notice {
+      text-align:center;
+      background:var(--card-bg);
+      padding:10px;
+      color:var(--accent);
+      font-weight:600;
+      border-bottom:1px solid rgba(255,255,255,0.1);
+    }
+
+    .shop-info {
+      padding:16px;
+      text-align:center;
+    }
+    .shop-info h2 {
+      margin:0;
+      font-size:20px;
+      font-weight:700;
+      background:var(--accent-grad);
+      -webkit-background-clip:text;
+      color:transparent;
+    }
+    .shop-info p {
+      margin:8px 0;
+      color:var(--muted);
+    }
+
+    .status {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      margin-top:8px;
+      font-weight:600;
+      color:var(--muted);
+    }
+    .dot {
+      width:10px;
+      height:10px;
+      border-radius:50%;
+    }
+
+    .product-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+      gap:12px;
+      padding:16px;
+      padding-bottom:100px;
+    }
+    .product-card {
+      background:var(--card-bg);
+      border-radius:16px;
+      overflow:hidden;
+      transition:transform 0.3s;
+    }
+    .product-card:hover {
+      transform:translateY(-3px);
+    }
+    .product-card img {
+      width:100%;
+      height:130px;
+      object-fit:cover;
+    }
+    .product-details {
+      padding:10px;
+    }
+    .product-details h3 {
+      margin:0;
+      font-size:14px;
+      font-weight:600;
+      color:var(--text);
+    }
+    .product-details p {
+      margin:4px 0;
+      color:var(--accent);
+      font-weight:700;
+      font-size:13px;
+    }
+
+    .status-notice {
+      text-align:center;
+      background:var(--card-bg);
+      border-radius:12px;
+      padding:10px;
+      margin:10px auto;
+      max-width:320px;
+      display:none;
+      font-weight:600;
+      color:var(--text);
+    }
+
+    .bottom-nav {
+      position:fixed;
+      bottom:0;
+      width:100%;
+      display:flex;
+      justify-content:space-around;
+      background:rgba(7,4,22,0.9);
+      padding:8px 0;
+      border-top:1px solid rgba(255,255,255,0.05);
+      backdrop-filter:blur(10px);
+    }
+    .bottom-nav a {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .bottom-nav a.active { color:var(--accent); }
+    .bottom-nav i { font-size:18px; margin-bottom:2px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <button class="back-btn" onclick="window.location.href='shopkeeper.html'"><i class="fas fa-arrow-left"></i> Back</button>
+  <h1>View Shop</h1>
+  <span></span>
+</header>
+
+<div class="notice">👁️ You’re viewing your shop as customers see it</div>
+
+<div class="shop-info">
+  <h2 id="shopName">Your Shop</h2>
+  <p id="shopDesc">A preview of how your shop and products appear to customers.</p>
+  <div class="status">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Inactive</span>
+  </div>
+</div>
+
+<div id="statusNotice" class="status-notice"></div>
+
+<div class="product-grid" id="productGrid"></div>
+
+<div class="bottom-nav">
+  <a href="index.html"><i class="fas fa-home"></i>Home</a>
+  <a href="view.html" class="active"><i class="fas fa-store"></i>View</a>
+  <a href="shopkeeper.html"><i class="fas fa-user-cog"></i>Shopkeeper</a>
+</div>
+
+<script>
+function loadShopData() {
+  const shopName = localStorage.getItem("shopkeeper_shopName") || "Unnamed Shop";
+  const shopDesc = localStorage.getItem("shopkeeper_shopDesc") || "No description provided.";
+  const products = JSON.parse(localStorage.getItem("shopkeeper_products")) || [];
+  const shopStatus = localStorage.getItem("shopkeeper_status") || "inactive";
+
+  document.getElementById("shopName").textContent = shopName;
+  document.getElementById("shopDesc").textContent = shopDesc;
+
+  const statusDot = document.getElementById("statusDot");
+  const statusText = document.getElementById("statusText");
+  const statusNotice = document.getElementById("statusNotice");
+
+  if (shopStatus === "active") {
+    statusDot.style.background = "var(--active)";
+    statusText.textContent = "Active";
+    statusText.style.color = "var(--active)";
+    statusNotice.style.display = "block";
+    statusNotice.style.background = "rgba(43,231,43,0.1)";
+    statusNotice.style.color = "var(--active)";
+    statusNotice.textContent = "🟢 Your shop is currently active and visible to customers.";
+  } else {
+    statusDot.style.background = "var(--offline)";
+    statusText.textContent = "Inactive";
+    statusText.style.color = "var(--offline)";
+    statusNotice.style.display = "block";
+    statusNotice.style.background = "rgba(255,75,75,0.1)";
+    statusNotice.style.color = "var(--offline)";
+    statusNotice.textContent = "🔴 Your shop is inactive and hidden from customers.";
+  }
+
+  const grid = document.getElementById("productGrid");
+  if (products.length === 0) {
+    grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--muted);">No products added yet.</p>`;
+  } else {
+    grid.innerHTML = products.map(p => `
+      <div class="product-card">
+        <img src="${p.image}" alt="${p.name}">
+        <div class="product-details">
+          <h3>${p.name}</h3>
+          <p>Ksh ${p.price}</p>
+        </div>
+      </div>
+    `).join("");
+  }
+}
+
+// Sync updates from shopkeeper dashboard
+window.addEventListener("storage", e => {
+  if (e.key && e.key.startsWith("shopkeeper_")) loadShopData();
+});
+
+// Load when page opens
+loadShopData();
+</script>
+
+</body>
+</html>
