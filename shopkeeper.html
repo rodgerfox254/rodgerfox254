@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Shopkeeper — Time Shop Save</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://kit.fontawesome.com/a2d9b9f0d4.js" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg1:#070416;
+    --g1:#7b2ff7; --g2:#ff6ec7; --g3:#2be7ff;
+    --accent-grad: linear-gradient(90deg,var(--g1),var(--g2),var(--g3));
+    --text:#eaf3ff;
+    --muted:rgba(234,243,255,0.65);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    --active:#2be72b;
+    --danger:#ff4b4b;
+    --sidebar-w:84px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;background:var(--bg1);color:var(--text);-webkit-font-smoothing:antialiased;overflow:hidden}
+  a{color:inherit;text-decoration:none}
+
+  /* Layout */
+  .app{display:flex;height:100vh;gap:18px}
+  aside.sidebar{width:var(--sidebar-w);background:var(--card-bg);box-shadow:var(--card-shadow);border-right:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;align-items:center;padding:14px 8px;gap:12px}
+  aside .logo-mark{width:46px;height:46px;border-radius:10px;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;font-weight:800;color:#071126}
+  .nav-btn{width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;border-radius:10px;color:var(--muted);cursor:pointer;border:none;background:transparent}
+  .nav-btn.active{background:linear-gradient(90deg, rgba(123,47,247,0.12), rgba(43,231,255,0.06));color:var(--g3)}
+  .nav-btn i{font-size:18px}
+  .nav-label{font-size:11px;text-align:center}
+
+  /* main content area */
+  .main{flex:1;display:flex;flex-direction:column;overflow:auto}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,0.04);background:rgba(7,4,22,0.92);position:sticky;top:0;z-index:10}
+  header .left{display:flex;align-items:center;gap:12px}
+  header h1{margin:0;font-size:16px;background:var(--accent-grad);-webkit-background-clip:text;color:transparent}
+  .top-actions{display:flex;align-items:center;gap:8px}
+
+  /* content body */
+  .content{padding:18px;display:grid;grid-template-columns:1fr 420px;gap:18px;align-items:start}
+  @media (max-width:980px){ .content{grid-template-columns:1fr} .sidebar{display:none} }
+
+  /* cards and stats */
+  .card{background:var(--card-bg);padding:14px;border-radius:12px;box-shadow:var(--card-shadow);border:1px solid rgba(255,255,255,0.03)}
+  .stats{display:flex;gap:12px;margin-bottom:12px}
+  .stat{flex:1;padding:12px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);display:flex;flex-direction:column;gap:6px}
+  .stat h3{margin:0;font-size:13px;color:var(--muted)}
+  .stat .val{font-size:18px;font-weight:800}
+
+  /* products list */
+  .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .products-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .prod{padding:10px;border-radius:12px;background:rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:8px}
+  .prod img{width:100%;height:110px;object-fit:cover;border-radius:8px}
+  .prod .row{display:flex;justify-content:space-between;align-items:center}
+  .small-muted{font-size:13px;color:var(--muted)}
+
+  /* orders */
+  .orders-list{display:flex;flex-direction:column;gap:10px;max-height:56vh;overflow:auto;padding-right:6px}
+  .order-item{display:flex;gap:10px;align-items:flex-start;padding:8px;border-radius:10px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
+  .order-item img{width:72px;height:72px;border-radius:8px;object-fit:cover}
+
+  /* withdraw */
+  .withdraw-row{display:flex;flex-direction:column;gap:8px}
+
+  /* controls */
+  .btn{background:var(--accent-grad);border:0;padding:8px 12px;border-radius:10px;color:#071126;font-weight:700;cursor:pointer}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+  .small{font-size:13px;color:var(--muted)}
+
+  footer.bottom-note{position:fixed;left:0;right:0;bottom:0;background:rgba(7,4,22,0.95);padding:8px 16px;border-top:1px solid rgba(255,255,255,0.04);text-align:center;color:var(--muted);font-size:13px;display:flex;justify-content:center;gap:26px;align-items:center}
+  footer a{color:var(--muted);text-decoration:none}
+
+  /* login modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999}
+  .modal{background:var(--card-bg);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);box-shadow:var(--card-shadow);width:420px;max-width:94%}
+  .modal h3{margin:0 0 8px 0}
+  .form-row{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+  input,select,textarea{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text)}
+  .muted{color:var(--muted)}
+  .top-right-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer}
+</style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo-mark">TSS</div>
+      <button class="nav-btn active" data-tab="dashboard"><i class="fas fa-tachometer-alt"></i><div class="nav-label">Dash</div></button>
+      <button class="nav-btn" data-tab="orders"><i class="fas fa-box-open"></i><div class="nav-label">Orders</div></button>
+      <button class="nav-btn" data-tab="products"><i class="fas fa-boxes"></i><div class="nav-label">Products</div></button>
+      <button class="nav-btn" data-tab="withdraw"><i class="fas fa-wallet"></i><div class="nav-label">Withdraw</div></button>
+      <button class="nav-btn" data-tab="settings"><i class="fas fa-cog"></i><div class="nav-label">Settings</div></button>
+      <div style="flex:1"></div>
+      <div style="font-size:12px;color:var(--muted);text-align:center">Signed as Shop</div>
+    </aside>
+
+    <div class="main">
+      <header>
+        <div class="left">
+          <h1>Shopkeeper Dashboard</h1>
+          <div class="small-muted" id="shopTitle" style="margin-left:12px"></div>
+        </div>
+
+        <div class="top-actions">
+          <button class="top-right-btn" id="previewViewBtn" title="View shop (preview)"><i class="fas fa-eye"></i></button>
+          <button class="top-right-btn" id="loginToggleBtn">Login</button>
+        </div>
+      </header>
+
+      <div id="canvas" class="content">
+        <!-- left column (main) -->
+        <div id="leftCol">
+          <!-- Stats -->
+          <div class="card">
+            <div class="stats">
+              <div class="stat">
+                <h3>Total earnings</h3>
+                <div class="val" id="statEarnings">Ksh 0</div>
+                <div class="small-muted">From paid orders</div>
+              </div>
+              <div class="stat">
+                <h3>Total orders</h3>
+                <div class="val" id="statOrders">0</div>
+                <div class="small-muted">All orders for this shop</div>
+              </div>
+              <div class="stat">
+                <h3>Active products</h3>
+                <div class="val" id="statProducts">0</div>
+                <div class="small-muted">Visible on shop page</div>
+              </div>
+            </div>
+
+            <div class="section-title">
+              <div style="font-weight:800">Recent activity</div>
+              <div class="small-muted" id="lastSync">Updated just now</div>
+            </div>
+
+            <div class="orders-list card" id="recentOrders" style="padding:12px;min-height:120px"></div>
+          </div>
+
+          <!-- Products management -->
+          <div class="card" style="margin-top:12px">
+            <div class="section-title">
+              <div style="font-weight:800">Products</div>
+              <div><button class="btn" id="openAddProd">Add product</button></div>
+            </div>
+            <div id="productsBox" class="products-list"></div>
+            <div id="noProducts" class="small-muted" style="margin-top:10px;display:none">No products yet.</div>
+          </div>
+        </div>
+
+        <!-- right column -->
+        <div id="rightCol">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:800">Shop info</div>
+              <div><button class="btn ghost" id="toggleActiveBtn">Set active</button></div>
+            </div>
+            <div style="margin-top:10px">
+              <div class="small-muted">Shop name</div>
+              <div id="shopName" style="font-weight:800;font-size:16px">—</div>
+              <div class="small-muted" style="margin-top:8px">Earnings available</div>
+              <div style="font-weight:800;font-size:16px" id="shopEarnings">Ksh 0</div>
+              <div class="small-muted" style="margin-top:8px">Withdrawals</div>
+              <div id="withdrawLog" style="max-height:120px;overflow:auto;margin-top:6px"></div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:800">Orders (for this shop)</div>
+              <div><button class="btn ghost" id="refreshBtn">Refresh</button></div>
+            </div>
+            <div id="ordersBox" style="margin-top:10px;max-height:360px;overflow:auto"></div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div style="font-weight:800;margin-bottom:8px">Withdraw funds</div>
+            <div class="withdraw-row">
+              <input id="withdrawPhone" placeholder="Phone to receive (for manual transfer)" />
+              <input id="withdrawAmount" placeholder="Amount Ksh" type="number" />
+              <div class="small-muted">Withdraw fee: 5% (charged on withdrawal). Fee goes to admin.</div>
+              <div style="display:flex;gap:8px">
+                <button class="btn" id="withdrawBtn">Withdraw</button>
+                <button class="btn ghost" id="withdrawHistoryBtn">History</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <footer style="padding:12px 18px;border-top:1px solid rgba(255,255,255,0.03);background:rgba(7,4,22,0.92)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <div class="small-muted">TSS — Shopkeeper view</div>
+          <div style="display:flex;gap:12px">
+            <a href="index.html">Home</a>
+            <a href="view.html" id="viewLink">View</a>
+            <a href="shopkeeper.html" style="font-weight:700">Shopkeeper</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- modal container -->
+  <div id="modalRoot" style="display:none"></div>
+
+<script>
+/*
+  Shopkeeper dashboard (localStorage-driven)
+  - Users saved as "user:<email>" (object with role === 'shop', shopName, profileImage, etc.)
+  - Shop products stored as "shop_products_<shopNameSafe>" (array)
+  - Shop earnings computed by scanning ALL orders in localStorage (orders_<userEmail>) where order.shop === shopName and status === 'paid'
+  - Withdrawals recorded in "shop_withdraws_<shopNameSafe>"
+  - Admin fees recorded in "admin_revenue" and "admin_txns"
+  - Login/register modal here simulates quick flow; in production link login.html and set rememberUser
+*/
+
+const ADMIN_FEE_WITHDRAW_PERCENT = 0.05; // 5% withdraw fee
+
+/* Helpers */
+const safe = s => String(s||'').replace(/[^a-z0-9_\-]/ig,'_');
+const userKey = (email)=>`user:${String(email||'').toLowerCase()}`;
+const shopProductsKey = (shop)=>`shop_products_${safe(shop)}`;
+const shopWithdrawsKey = (shop)=>`shop_withdraws_${safe(shop)}`;
+const adminRevenueKey = ()=>`admin_revenue`;
+const adminTxKey = ()=>`admin_txns`;
+
+/* Remember keys used elsewhere in app to indicate logged-in */
+const REMEMBER_KEYS = ['rememberUser','tss_last_login','lastLoggedUser'];
+
+/* Current session values */
+let currentShopkeeper = null; // user object when logged in
+
+/* UI refs */
+const loginToggleBtn = document.getElementById('loginToggleBtn');
+const previewViewBtn = document.getElementById('previewViewBtn');
+const shopTitleEl = document.getElementById('shopTitle');
+const shopNameEl = document.getElementById('shopName');
+const shopEarningsEl = document.getElementById('shopEarnings');
+const statEarnings = document.getElementById('statEarnings');
+const statOrders = document.getElementById('statOrders');
+const statProducts = document.getElementById('statProducts');
+const productsBox = document.getElementById('productsBox');
+const noProductsEl = document.getElementById('noProducts');
+const openAddProd = document.getElementById('openAddProd');
+const toggleActiveBtn = document.getElementById('toggleActiveBtn');
+const ordersBox = document.getElementById('ordersBox');
+const recentOrders = document.getElementById('recentOrders');
+const refreshBtn = document.getElementById('refreshBtn');
+const withdrawBtn = document.getElementById('withdrawBtn');
+const withdrawHistoryBtn = document.getElementById('withdrawHistoryBtn');
+const withdrawLogEl = document.getElementById('withdrawLog');
+
+const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
+navBtns.forEach(b=> b.addEventListener('click', ()=> {
+  navBtns.forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const tab = b.dataset.tab;
+  // simple tab switch: scroll to portion inside canvas
+  if(tab==='dashboard') window.scrollTo({top:0,behavior:'smooth'});
+  if(tab==='orders') document.getElementById('ordersBox').scrollIntoView({behavior:'smooth'});
+  if(tab==='products') productsBox.scrollIntoView({behavior:'smooth'});
+  if(tab==='withdraw') withdrawLogEl.scrollIntoView({behavior:'smooth'});
+}));
+
+/* Init: check if any shopkeeper is remembered (simulate login) */
+function getRememberedShopkeeperEmail(){
+  // older apps used these keys: prefer rememberUser
+  for(const k of REMEMBER_KEYS){
+    const v = localStorage.getItem(k);
+    if(v) return v;
+  }
+  return null;
+}
+
+/* Try auto-login if available */
+function tryAutoLogin(){
+  const em = getRememberedShopkeeperEmail();
+  if(!em) {
+    setLoggedOutUI();
+    return;
+  }
+  const raw = localStorage.getItem(userKey(em));
+  if(!raw){ setLoggedOutUI(); return; }
+  const u = JSON.parse(raw);
+  if(u.role !== 'shop'){ setLoggedOutUI(); return; }
+  loginAs(u);
+}
+
+/* Login flow (modal) */
+loginToggleBtn.addEventListener('click', ()=> {
+  if(currentShopkeeper){ // logout action
+    if(confirm('Logout?')) logout();
+    return;
+  }
+  showLoginModal();
+});
+
+previewViewBtn.addEventListener('click', ()=> {
+  // quick preview of shop (open shop.html?shop=NAME) if shop exists
+  if(!currentShopkeeper) return alert('Please login as a shopkeeper to preview shop.');
+  window.open(`shop.html?shop=${encodeURIComponent(currentShopkeeper.shopName||currentShopkeeper.name)}`, '_blank');
+});
+
+/* Show login/register modal (shopkeeper only) */
+function showLoginModal(){
+  const root = document.getElementById('modalRoot');
+  root.style.display = 'block';
+  root.innerHTML = `
+    <div class="modal-backdrop" id="mb">
+      <div class="modal">
+        <h3>Shopkeeper Login / Register</h3>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" id="mLogin">Login</button>
+          <button class="btn ghost" id="mRegister">Register</button>
+        </div>
+        <div id="mArea" style="margin-top:12px"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button class="btn ghost" id="mClose">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('mClose').addEventListener('click', ()=> closeModal());
+  document.getElementById('mLogin').addEventListener('click', ()=> renderLoginForm());
+  document.getElementById('mRegister').addEventListener('click', ()=> renderRegisterForm());
+  renderLoginForm();
+  function renderLoginForm(){
+    const area = document.getElementById('mArea');
+    area.innerHTML = `
+      <div class="form-row">
+        <label class="small-muted">Email</label>
+        <input id="mEmail" placeholder="shop@domain.com" />
+        <label class="small-muted">Password</label>
+        <input id="mPass" type="password" />
+        <label><input id="mRemember" type="checkbox" /> Remember me</label>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn" id="doLogin">Login</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('doLogin').addEventListener('click', ()=>{
+      const email = document.getElementById('mEmail').value.trim().toLowerCase();
+      const pass = document.getElementById('mPass').value;
+      if(!email || !pass) return alert('Enter email and password');
+      const raw = localStorage.getItem(userKey(email));
+      if(!raw) return alert('No account found. Please register.');
+      try{
+        const u = JSON.parse(raw);
+        if(u.role !== 'shop') return alert('Account is not a shopkeeper.');
+        if(u.pass !== pass) return alert('Incorrect password.');
+        if(document.getElementById('mRemember').checked) localStorage.setItem('rememberUser', email);
+        loginAs(u);
+        closeModal();
+      }catch(e){ alert('Invalid user data'); }
+    });
+  }
+  function renderRegisterForm(){
+    const area = document.getElementById('mArea');
+    area.innerHTML = `
+      <div class="form-row">
+        <label class="small-muted">Full name</label><input id="rName" placeholder="Your name" />
+        <label class="small-muted">Email</label><input id="rEmail" placeholder="shop@domain.com" />
+        <label class="small-muted">Password</label><input id="rPass" type="password" />
+        <label class="small-muted">Shop name</label><input id="rShop" placeholder="My Shop" />
+        <label class="small-muted">Shop location (optional)</label><input id="rLoc" placeholder="Town / area" />
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn" id="doRegister">Create account</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('doRegister').addEventListener('click', ()=>{
+      const name = document.getElementById('rName').value.trim();
+      const email = document.getElementById('rEmail').value.trim().toLowerCase();
+      const pass = document.getElementById('rPass').value;
+      const shop = document.getElementById('rShop').value.trim();
+      if(!name || !email || !pass || !shop) return alert('Fill required fields.');
+      if(localStorage.getItem(userKey(email))) return alert('Email already used.');
+      const u = { name, email, pass, role:'shop', shopName: shop, location: document.getElementById('rLoc').value.trim(), createdAt: new Date().toISOString(), shopActive: true };
+      localStorage.setItem(userKey(email), JSON.stringify(u));
+      // initialize empty products for this shop
+      localStorage.setItem(shopProductsKey(u.shopName), JSON.stringify([]));
+      if(document.getElementById('mRemember')?.checked) localStorage.setItem('rememberUser', email);
+      alert('Shopkeeper account created. Logging in...');
+      loginAs(u);
+      closeModal();
+    });
+  }
+}
+function closeModal(){ const root=document.getElementById('modalRoot'); root.style.display='none'; root.innerHTML=''; }
+
+/* Login / Logout handlers */
+function loginAs(userObj){
+  currentShopkeeper = userObj;
+  // mark remember key so other pages can pick up
+  localStorage.setItem('rememberUser', userObj.email);
+  localStorage.setItem('tss_last_login', userObj.email);
+  // show logged-in UI
+  loginToggleBtn.textContent = 'Logout';
+  shopTitleEl.textContent = `— ${userObj.shopName || userObj.name}`;
+  shopNameEl.textContent = userObj.shopName || userObj.name;
+  renderAll();
+}
+function logout(){
+  // clear remember keys
+  REMEMBER_KEYS.forEach(k=> localStorage.removeItem(k));
+  currentShopkeeper = null;
+  setLoggedOutUI();
+}
+
+/* UI for logged-out */
+function setLoggedOutUI(){
+  loginToggleBtn.textContent = 'Login';
+  shopTitleEl.textContent = '';
+  shopNameEl.textContent = '—';
+  statEarnings.innerText = 'Ksh 0';
+  statOrders.innerText = '0';
+  statProducts.innerText = '0';
+  productsBox.innerHTML = '';
+  ordersBox.innerHTML = `<div class="small-muted" style="padding:12px">Login to see orders for your shop.</div>`;
+  recentOrders.innerHTML = `<div class="small-muted" style="padding:12px">Login to see activity.</div>`;
+  withdrawLogEl.innerHTML = `<div class="small-muted" style="padding:8px">No withdrawals recorded.</div>`;
+}
+
+/* Render everything once logged-in */
+function renderAll(){
+  if(!currentShopkeeper) return setLoggedOutUI();
+  // initialize shop products if missing
+  const shop = currentShopkeeper.shopName || currentShopkeeper.name;
+  if(!localStorage.getItem(shopProductsKey(shop))) localStorage.setItem(shopProductsKey(shop), JSON.stringify([]));
+  // initialize withdraws
+  if(!localStorage.getItem(shopWithdrawsKey(shop))) localStorage.setItem(shopWithdrawsKey(shop), JSON.stringify([]));
+  renderStats();
+  renderProducts();
+  renderShopOrders();
+  renderRecentActivity();
+  renderWithdraws();
+  // set active state UI
+  toggleActiveBtn.textContent = currentShopkeeper.shopActive ? 'Set inactive' : 'Set active';
+}
+
+/* Stats: earnings, orders count, products */
+function computeShopEarnings(shop){
+  // scan all orders_* keys in localStorage and sum totals where order.shop === shop and status === 'paid'
+  let earnings = 0;
+  let ordersCount = 0;
+  for(const k in localStorage){
+    if(!k.startsWith('orders_')) continue;
+    try{
+      const arr = JSON.parse(localStorage.getItem(k) || '[]');
+      arr.forEach(o=>{
+        if(o && o.shop === shop){
+          ordersCount++;
+          if(o.status === 'paid') earnings += Number(o.total || 0);
+        }
+      });
+    }catch(e){}
+  }
+  return {earnings, ordersCount};
+}
+
+function renderStats(){
+  const shop = currentShopkeeper.shopName || currentShopkeeper.name;
+  const {earnings, ordersCount} = computeShopEarnings(shop);
+  statEarnings.innerText = 'Ksh ' + Number(earnings).toFixed(2);
+  statOrders.innerText = ordersCount;
+  // products count
+  const prods = JSON.parse(localStorage.getItem(shopProductsKey(shop)) || '[]');
+  statProducts.innerText = prods.filter(p=>p.active !== false).length;
+  // shop earnings (available to withdraw) stored under shop_withdraws? We'll treat earnings as total earned.
+  shopEarningsEl.innerText = 'Ksh ' + Number(earnings).toFixed(2);
+}
+
+/* Products management */
+openAddProd.addEventListener('click', ()=> {
+  if(!currentShopkeeper) return alert('Please login');
+  showAddProductModal();
+});
+
+function showAddProductModal(editIndex){
+  const shop = currentShopkeeper.shopName || currentShopkeeper.name;
+  const arr = JSON.parse(localStorage.getItem(shopProductsKey(shop)) || '[]');
+  const existing = typeof editIndex === 'number' ? arr[editIndex] : null;
+  const modal = createModal(`
+    <h3>${existing ? 'Edit' : 'Add'} product</h3>
+    <div class="form-row">
+      <label class="small-muted">Name</label><input id="pName" value="${existing?escapeHtml(existing.name):''}" />
+      <label class="small-muted">Price (Ksh)</label><input id="pPrice" type="number" value="${existing?existing.price:0}" />
+      <label class="small-muted">Image URL (optional)</label><input id="pImg" value="${existing?escapeHtml(existing.img):''}" />
+      <label class="small-muted">Quantity</label><input id="pQty" type="number" value="${existing?existing.qty||0:0}" />
+      <label><input id="pActive" type="checkbox" ${existing && existing.active!==false ? 'checked' : ''}/> Active</label>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn ghost" id="cancelProd">Cancel</button>
+      <button class="btn" id="saveProd">${existing ? 'Save' : 'Add'}</button>
+    </div>
+  `);
+  modal.querySelector('#cancelProd').addEventListener('click', ()=> closeModal(modal));
+  modal.querySelector('#saveProd').addEventListener('click', ()=>{
+    const name = modal.querySelector('#pName').value.trim();
+    const price = Number(modal.querySelector('#pPrice').value || 0);
+    const img = modal.querySelector('#pImg').value.trim() || `https://via.placeholder.com/300?text=${encodeURIComponent((name||'P').slice(0,2))}`;
+    const qty = Math.max(0, parseInt(modal.querySelector('#pQty').value||0,10));
+    const active = modal.querySelector('#pActive').checked;
+    if(!name || price <= 0) return alert('Provide name and positive price');
+    const shopKey = shopProductsKey(shop);
+    const list = JSON.parse(localStorage.getItem(shopKey) || '[]');
+    if(existing){
+      list[editIndex] = {name, price, img, qty, active};
+    } else {
+      list.unshift({name, price, img, qty, active, id: 'p_' + Date.now() + '_' + Math.floor(Math.random()*9999)});
+    }
+    localStorage.setItem(shopKey, JSON.stringify(list));
+    closeModal(modal);
+    renderProducts();
+    renderStats();
+  });
+}
+
+function renderProducts(){
+  const shop = currentShopkeeper.shopName || currentShopkeeper.name;
+  const list = JSON.parse(localStorage.getItem(shopProductsKey(shop)) || '[]');
+  productsBox.innerHTML = '';
+  if(!list || list.length === 0){ noProductsEl.style.display = 'block'; return; }
+  noProductsEl.style.display = 'none';
+  list.forEach((p,i)=>{
+    const card = document.createElement('div');
+    card.className = 'prod';
+    card.innerHTML = `
+      <img src="${p.img || 'https://via.placeholder.com/300'}" alt="${escapeHtml(p.name)}">
+      <div style="font-weight:700">${escapeHtml(p.name)}</div>
+      <div class="row">
+        <div class="small-muted">Ksh ${Number(p.price).toFixed(2)} • ${p.qty||0}pcs</div>
+        <div>
+          <button class="btn ghost" data-act="toggle" data-i="${i}">${p.active===false ? 'Inactive' : 'Active'}</button>
+          <button class="btn" data-act="edit" data-i="${i}">Edit</button>
+        </div>
+      </div>
+    `;
+    productsBox.appendChild(card);
+  });
+  // attach events
+  productsBox.querySelectorAll('button[data-act]').forEach(b=>{
+    b.addEventListener('click', (ev)=>{
+      const act = b.dataset.act;
+      const idx = Number(b.dataset.i);
+      const shop = currentShopkeeper.shopName || currentShopkeeper.name;
+      const key = shopProductsKey(shop);
+      const arr = JSON.parse(localStorage.getItem(key)||'[]');
+      if(act === 'toggle'){
+        arr[idx].active = !(arr[idx].active===false);
+        localStorage.setItem(key, JSON.stringify(arr));
+        renderProducts();
+        renderStats();
+      } else if(act === 'edit'){
+        showAddProductModal(idx);
+      }
+    });
+  });
+}
+
+/* Orders for this shop - scan all orders_* keys */
+function listOrdersForShop(){
+  const shop = currentShopkeeper.shopName || currentShopkeeper.name;
+  const found = [];
+  for(const k in localStorage){
+    if(!k.startsWith('orders_')) continue;
+    try{
+      const arr = JSON.parse(localStorage.getItem(k) || '[]');
+      if(!Array.isArray(arr)) continue;
+      arr.forEach(o=>{
+        if(o && o.shop === shop){
+          found.push(o);
+        }
+      });
+    }catch(e){}
+  }
+  // sort desc by createdAt if available
+  found.sort((a,b)=> (new Date(b.createdAt||0)) - (new Date(a.createdAt||0)));
+  return found;
+}
+
+function renderShopOrders(){
+  const list = listOrdersForShop();
+  ordersBox.innerHTML = '';
+  if(!list.length) { ordersBox.innerHTML = `<div class="small-muted" style="padding:12px">No orders for this shop yet.</div>`; statOrders.innerText = '0'; return; }
+  list.forEach((o, idx)=>{
+    const wrapper = document.createElement('div');
+    wrapper.className = 'order-item';
+    const thumb = (o.items && o.items[0] && o.items[0].img) ? o.items[0].img : 'https://via.placeholder.com/72?text=IT';
+    wrapper.innerHTML = `
+      <img src="${thumb}" alt="">
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:800">${escapeHtml(o.code || o.orderId || 'Order')}</div>
+          <div class="small-muted">${new Date(o.createdAt||0).toLocaleString()}</div>
+        </div>
+        <div class="small-muted" style="margin-top:6px">${escapeHtml(o.customerName || (o.customerEmail || 'Customer'))}</div>
+        <div style="margin-top:8px">${(o.items||[]).map(it=>`<div>${escapeHtml(it.name)} × ${it.qty||1} — Ksh ${(Number(it.price||0)*(it.qty||1)).toFixed(2)}</div>`).join('')}</div>
+      </div>
+      <div style="text-align:right;min-width:120px">
+        <div style="font-weight:800">Ksh ${Number(o.total||0).toFixed(2)}</div>
+        <div style="margin-top:8px"><span class="small-muted">${String(o.status||'pending').toUpperCase()}</span></div>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+          <button class="btn" data-act="mark-paid" data-id="${o.code||o.orderId||''}">Mark paid</button>
+          <button class="btn ghost" data-act="fulfill" data-id="${o.code||o.orderId||''}">Fulfill</button>
+        </div>
+      </div>
+    `;
+    ordersBox.appendChild(wrapper);
+  });
+  // wire buttons inside ordersBox
+  ordersBox.querySelectorAll('button[data-act]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const act = btn.dataset.act;
+      const id = btn.dataset.id;
+      handleOrderAction(id, act);
+    });
+  });
+  recentOrders.innerHTML = ordersBox.innerHTML;
+  statOrders.innerText = list.length;
+}
+
+/* Simple order action handler: changes order status across localStorage */
+function handleOrderAction(code, action){
+  if(!code) return alert('Order code missing');
+  let found=false;
+  for(const k in localStorage){
+    if(!k.startsWith('orders_')) continue;
+    try{
+      const arr = JSON.parse(localStorage.getItem(k)||'[]');
+      let changed=false;
+      for(let i=0;i<arr.length;i++){
+        const o = arr[i];
+        if((o.code||o.orderId||'') === code){
+          if(action === 'mark-paid'){
+            if(o.status === 'paid') { alert('Already paid'); return; }
+            o.status = 'paid';
+            // when marked paid, optionally update shop earnings: that's computed live.
+            arr[i]=o; changed=true; found=true;
+          } else if(action === 'fulfill'){
+            if(o.status !== 'paid') { alert('Can only fulfill paid orders'); return; }
+            o.status = 'picked';
+            arr[i] = o; changed=true; found=true;
+          }
+        }
+      }
+      if(changed) localStorage.setItem(k, JSON.stringify(arr));
+      if(found) break;
+    }catch(e){}
+  }
+  if(!found) alert('Order not found in storage.');
+  else {
+    renderShopOrders();
+    renderStats();
+    alert('Order updated.');
+  }
+}
+
+/* recent activity shows latest orders (already built into renderShopOrders) */
+function renderRecentActivity(){
+  const shop = currentShopkeeper.shopName || currentShopkeeper.name;
+  const list = listOrdersForShop().slice(0,6);
+  recentOrders.innerHTML = list.length ? list.map(o=>`<div style="padding:8px;border-radius:8px;background:rgba(255,255,255,0.01);margin-bottom:6px"><div style="font-weight:700">${escapeHtml(o.code||o.orderId||'Order')}</div><div class="small-muted">${new Date(o.createdAt||0).toLocaleString()}</div></div>`).join('') : `<div class="small-muted" style="padding:8px">No recent activity</div>`;
+  document.getElementById('lastSync').innerText = 'Updated just now';
+}
+
+/* Withdraw flow */
+withdrawBtn.addEventListener('click', ()=>{
+  if(!currentShopkeeper) return alert('Login first');
+  const phone = document.getElementById('withdrawPhone').value.trim();
+  const raw = Number(document.getElementById('withdrawAmount').value || 0);
+  if(!phone) return alert('Enter phone to receive');
+  if(!raw || raw <= 0) return alert('Enter valid amount');
+  // compute current shop earnings (sum of paid orders)
+  const shop = currentShopkeeper.shopName || currentShopkeeper.name;
+  const {earnings} = computeShopEarnings(shop);
+  if(raw > earnings) return alert('Requested amount exceeds available earnings.');
+  if(!confirm(`Withdraw Ksh ${raw.toFixed(2)}? A ${ADMIN_FEE_WITHDRAW_PERCENT*100}% fee applies.`)) return;
+  const fee = Math.round(raw * ADMIN_FEE_WITHDRAW_PERCENT * 100)/100;
+  const paidOut = Math.round((raw - fee) * 100)/100;
+  // record withdraw to shop_withdraws_{shop}
+  const wKey = shopWithdrawsKey(shop);
+  const arr = JSON.parse(localStorage.getItem(wKey) || '[]');
+  arr.unshift({when:new Date().toISOString(), requested:raw, fee, paidOut, phone});
+  localStorage.setItem(wKey, JSON.stringify(arr));
+  // record admin revenue
+  const prevAdmin = Number(localStorage.getItem(adminRevenueKey()) || 0);
+  localStorage.setItem(adminRevenueKey(), String(Math.round((prevAdmin + fee)*100)/100));
+  // record admin tx
+  const atx = JSON.parse(localStorage.getItem(adminTxKey()) || '[]');
+  atx.unshift({when:new Date().toISOString(), amount:fee, shop:shop, note:`Withdraw fee ${ADMIN_FEE_WITHDRAW_PERCENT*100}%`});
+  localStorage.setItem(adminTxKey(), JSON.stringify(atx));
+  // simulate that payout is processed externally; we don't adjust orders or earnings history:
+  alert(`Withdraw requested. Fee Ksh ${fee.toFixed(2)} (admin). You will receive Ksh ${paidOut.toFixed(2)} to ${phone} (manual transfer).`);
+  renderWithdraws();
+  renderStats();
+});
+
+withdrawHistoryBtn.addEventListener('click', ()=> {
+  if(!currentShopkeeper) return alert('Login first');
+  const shop = currentShopkeeper.shopName || currentShopkeeper.name;
+  const arr = JSON.parse(localStorage.getItem(shopWithdrawsKey(shop)) || '[]');
+  if(!arr.length) return alert('No withdraw history');
+  let txt = 'Withdraw history:\\n\\n';
+  arr.forEach(w => txt += `${new Date(w.when).toLocaleString()} — Requested: Ksh ${w.requested} — Fee: Ksh ${w.fee} — Paid: Ksh ${w.paidOut}\\n`);
+  alert(txt);
+});
+
+/* Render withdraw log */
+function renderWithdraws(){
+  const shop = currentShopkeeper.shopName || currentShopkeeper.name;
+  const arr = JSON.parse(localStorage.getItem(shopWithdrawsKey(shop)) || '[]');
+  if(!arr.length){ withdrawLogEl.innerHTML = `<div class="small-muted" style="padding:8px">No withdrawals yet.</div>`; return; }
+  withdrawLogEl.innerHTML = arr.map(w=>`<div style="padding:8px;border-radius:8px;background:rgba(255,255,255,0.01);margin-bottom:6px"><div style="font-weight:700">Ksh ${w.paidOut.toFixed(2)}</div><div class="small-muted">${new Date(w.when).toLocaleString()}</div></div>`).join('');
+}
+
+/* toggle active/inactive shop */
+toggleActiveBtn.addEventListener('click', ()=>{
+  if(!currentShopkeeper) return alert('Login first');
+  currentShopkeeper.shopActive = !currentShopkeeper.shopActive;
+  localStorage.setItem(userKey(currentShopkeeper.email), JSON.stringify(currentShopkeeper));
+  toggleActiveBtn.textContent = currentShopkeeper.shopActive ? 'Set inactive' : 'Set active';
+  alert(`Shop set ${currentShopkeeper.shopActive ? 'active' : 'inactive'}. Explore page will show status accordingly.`);
+});
+
+/* refresh button */
+refreshBtn.addEventListener('click', ()=> {
+  if(!currentShopkeeper) return alert('Login first');
+  renderAll();
+});
+
+/* storage listener so changes elsewhere reflect here */
+window.addEventListener('storage', (ev)=>{
+  // If any orders or shop products or admin revenue changed, re-render
+  if(!currentShopkeeper) return;
+  if(ev.key && (ev.key.startsWith('orders_') || ev.key === shopProductsKey(currentShopkeeper.shopName) || ev.key === adminRevenueKey())){
+    renderAll();
+  }
+});
+
+/* helpers: modal utilities */
+function createModal(html){
+  const root = document.getElementById('modalRoot');
+  root.style.display = 'block';
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  const node = document.createElement('div');
+  node.className = 'modal';
+  node.innerHTML = html;
+  backdrop.appendChild(node);
+  root.appendChild(backdrop);
+  return node;
+}
+function closeModal(node){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = '';
+  root.style.display = 'none';
+}
+
+/* utility functions */
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+/* initial auto-login attempt */
+tryAutoLogin();
+
+/* If logged-in at load, renderAll was called from tryAutoLogin. If not, we show logged-out UI. */
+
+/* Expose a global function to quickly set current shopkeeper for testing:
+   window.forceLogin('shop@domain.com') - useful during dev
+*/
+window.forceLogin = function(email){
+  const raw = localStorage.getItem(userKey(email));
+  if(!raw) return alert('User not found');
+  const u = JSON.parse(raw);
+  if(u.role !== 'shop') return alert('User is not shop role');
+  loginAs(u);
+  alert('Forced login as: ' + email);
+};
+
+</script>
+</body>
+</html>
