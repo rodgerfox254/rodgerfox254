@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Shop — Time Shop Save</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg1:#070416;
+      --accent:#7b2ff7;
+      --text:#eaf3ff;
+      --muted:rgba(234,243,255,0.7);
+      --card-bg:rgba(255,255,255,0.04);
+      --accent-grad:linear-gradient(90deg,#7b2ff7,#ff6ec7,#2be7ff);
+      --active:#2be72b;
+      --offline:#ff4b4b;
+      --cart-orange:#d94d1f;
+    }
+    html,body{margin:0;font-family:Inter,system-ui;color:var(--text);background:var(--bg1);}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.1);background:rgba(7,4,22,0.9);position:sticky;top:0;z-index:10;}
+    header h1{margin:0;font-size:18px;background:var(--accent-grad);-webkit-background-clip:text;color:transparent;font-weight:700;}
+    .back-btn{display:flex;align-items:center;gap:6px;font-size:15px;color:var(--muted);background:none;border:none;cursor:pointer;transition:all 0.3s;}
+    .back-btn:hover{color:var(--accent);transform:translateX(-3px);}
+    .cart-svg-wrap{width:42px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
+    .cart-count{position:absolute;top:-6px;right:-6px;background:var(--cart-orange);color:#fff;border-radius:50%;font-size:11px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,0.4);}
+    .shop-info{text-align:center;padding:30px 16px 10px;}
+    .shop-info img{width:100px;height:100px;border-radius:20px;border:2px solid rgba(255,255,255,0.08);object-fit:cover;margin-bottom:10px;}
+    .shop-name{font-size:22px;font-weight:700;}
+    .shop-category{font-size:14px;color:var(--muted);margin:6px 0;}
+    .shop-status{display:inline-block;margin-top:6px;padding:4px 12px;border-radius:8px;font-size:12px;font-weight:600;color:#071126;background:var(--active);}
+    .offline{background:var(--offline)!important;}
+    .search-bar{display:flex;justify-content:center;align-items:center;gap:8px;margin:14px auto 20px;width:90%;max-width:400px;}
+    .search-bar input{flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;color:var(--text);font-size:14px;outline:none;transition:border 0.3s;}
+    .search-bar input:focus{border-color:var(--accent);}
+    .search-bar button{background:var(--accent-grad);border:none;border-radius:8px;padding:8px 14px;color:#fff;font-weight:600;cursor:pointer;transition:opacity 0.3s;}
+    .search-bar button:hover{opacity:0.9;}
+    .products{padding:10px 16px 80px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
+    .product-card{background:var(--card-bg);border-radius:16px;padding:10px;text-align:center;transition:transform 0.2s,box-shadow 0.2s;}
+    .product-card:hover{transform:translateY(-3px);box-shadow:0 4px 12px rgba(123,47,247,0.25);}
+    .product-card img{width:100%;height:130px;border-radius:12px;object-fit:cover;}
+    .product-name{margin-top:6px;font-weight:600;font-size:14px;}
+    .product-price{color:var(--accent);font-weight:700;font-size:14px;margin:4px 0;}
+    .qty-controls{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:6px;}
+    .qty-btn{background:var(--accent-grad);color:#fff;border:none;border-radius:8px;padding:4px 10px;font-weight:700;cursor:pointer;transition:opacity 0.3s;}
+    .qty-btn:hover{opacity:0.85;}
+    .qty-num{min-width:20px;font-weight:600;font-size:14px;}
+    .no-products{text-align:center;color:var(--muted);margin-top:50px;font-size:15px;}
+    .inactive-note{text-align:center;color:var(--offline);margin-top:25px;font-size:14px;font-weight:600;}
+    .bottom-nav{position:fixed;bottom:0;width:100%;display:flex;justify-content:space-around;background:rgba(7,4,22,0.9);padding:8px 0;border-top:1px solid rgba(255,255,255,0.05);backdrop-filter:blur(10px);}
+    .bottom-nav a{display:flex;flex-direction:column;align-items:center;font-size:12px;color:var(--muted);}
+    .bottom-nav a.active{color:var(--accent);}
+    .bottom-nav i{font-size:18px;margin-bottom:2px;}
+  </style>
+</head>
+<body>
+
+<header>
+  <button class="back-btn" onclick="window.location.href='explore.html'">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back
+  </button>
+  <h1 id="shopHeader">Shop</h1>
+  <div class="cart-svg-wrap" id="cartIcon" title="Your cart">
+    <svg width="34" height="28" viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg">
+      <g fill="none" fill-rule="evenodd">
+        <path d="M6 10h10l6 20h28l8-18H20" fill="var(--cart-orange)"/>
+        <circle cx="30" cy="36" r="3.8" fill="#b33c14"/>
+        <circle cx="50" cy="36" r="3.8" fill="#b33c14"/>
+      </g>
+    </svg>
+    <div class="cart-count" id="cartCount">0</div>
+  </div>
+</header>
+
+<div class="shop-info">
+  <img id="shopLogo" src="" alt="Shop Logo">
+  <div class="shop-name" id="shopName"></div>
+  <div class="shop-category" id="shopCategory"></div>
+  <div class="shop-status" id="shopStatus"></div>
+</div>
+
+<div id="inactiveNote" class="inactive-note" style="display:none;">This shop is inactive. You cannot add to cart.</div>
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="Search in this shop...">
+  <button id="searchBtn">Search</button>
+</div>
+
+<div class="products" id="productList"></div>
+
+<div class="bottom-nav">
+  <a href="index.html"><i class="fas fa-home"></i>Home</a>
+  <a href="explore.html" class="active"><i class="fas fa-compass"></i>Explore</a>
+  <a href="orders.html"><i class="fas fa-box-open"></i>Orders</a>
+  <a href="profile.html"><i class="fas fa-user"></i>Profile</a>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const shopName = decodeURIComponent(params.get('shop'));
+const storedShopData = JSON.parse(localStorage.getItem(`shop_${shopName}`));
+const productList = document.getElementById('productList');
+const inactiveNote = document.getElementById('inactiveNote');
+const cartKey = `cart_${shopName.replace(/\s+/g, '_')}`;
+
+function getCart() {
+  const c = localStorage.getItem(cartKey);
+  if (!c) { localStorage.setItem(cartKey, JSON.stringify([])); return []; }
+  try { return JSON.parse(c); } catch { return []; }
+}
+function saveCart(c) { localStorage.setItem(cartKey, JSON.stringify(c)); }
+function updateCartCount() {
+  const c = getCart();
+  const count = c.reduce((t, i) => t + i.qty, 0);
+  const el = document.getElementById('cartCount');
+  el.textContent = count;
+  el.style.display = count ? 'flex' : 'none';
+}
+
+if (storedShopData) {
+  document.getElementById('shopLogo').src = storedShopData.logo || 'https://via.placeholder.com/100?text=SHOP';
+  document.getElementById('shopName').textContent = shopName;
+  document.getElementById('shopCategory').textContent = storedShopData.category || 'General';
+  const st = document.getElementById('shopStatus');
+  st.textContent = storedShopData.status || 'Inactive';
+  if (storedShopData.status === 'Inactive') {
+    st.classList.add('offline');
+    inactiveNote.style.display = 'block';
+  }
+
+  document.getElementById('shopHeader').textContent = shopName;
+  render(storedShopData.products || []);
+
+  document.getElementById('searchBtn').addEventListener('click', () => {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = (storedShopData.products || []).filter(p => p.name.toLowerCase().includes(q));
+    render(filtered);
+  });
+
+  function render(products) {
+    if (!products.length) {
+      productList.innerHTML = `<div class="no-products">🛍️ No goods available — coming soon!</div>`;
+      return;
+    }
+    const cart = getCart();
+    productList.innerHTML = products.map((p, i) => {
+      const item = cart.find(x => x.name === p.name);
+      const qty = item ? item.qty : 0;
+      return `
+      <div class="product-card">
+        <img src="${p.img}" alt="${p.name}">
+        <div class="product-name">${p.name}</div>
+        <div class="product-price">Ksh ${p.price}</div>
+        <div class="qty-controls" data-index="${i}">
+          <button class="qty-btn minus">-</button>
+          <span class="qty-num">${qty}</span>
+          <button class="qty-btn plus">+</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  productList.addEventListener('click', e => {
+    if (storedShopData.status === 'Inactive') {
+      alert("This shop is currently inactive. You cannot add products.");
+      return;
+    }
+    const btn = e.target.closest('.qty-btn');
+    if (!btn) return;
+    const index = Number(btn.parentElement.dataset.index);
+    const product = storedShopData.products[index];
+    let cart = getCart();
+    let item = cart.find(x => x.name === product.name);
+    if (btn.classList.contains('plus')) {
+      if (item) item.qty++;
+      else cart.push({ ...product, qty: 1 });
+    } else if (btn.classList.contains('minus')) {
+      if (item) {
+        item.qty--;
+        if (item.qty <= 0) cart = cart.filter(x => x.name !== product.name);
+      }
+    }
+    saveCart(cart);
+    render(storedShopData.products);
+    updateCartCount();
+  });
+} else {
+  document.querySelector('.shop-info').innerHTML = `<p style="text-align:center;margin-top:40px;">❌ Shop not found or not yet active.</p>`;
+}
+
+document.getElementById('cartIcon').addEventListener('click', () => {
+  window.location.href = `orders.html?shop=${encodeURIComponent(shopName)}`;
+});
+updateCartCount();
+</script>
+</body>
+</html>
