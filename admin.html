@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin • Time Shop Save</title>
+
+  <!-- Favicon (inline SVG data URL) -->
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='100' height='100' rx='16' fill='url(%23g)'/><text x='50' y='60' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='28' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+  <link rel="apple-touch-icon"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g2' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='120' height='120' rx='20' fill='url(%23g2)'/><text x='60' y='78' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='38' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+  <meta name="theme-color" content="#7b2ff7">
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b0b14;
+      --panel:#0f1220;
+      --muted:rgba(234,243,255,0.6);
+      --text:#eaf3ff;
+      --accent1:#7b2ff7;
+      --accent2:#ff6ec7;
+      --accent3:#2be7ff;
+      --card:#0d0f1a;
+      --glass: rgba(255,255,255,0.03);
+      --success:#2be72b;
+      --danger:#ff4b4b;
+      --ok:#55ff99;
+      --glass-2: rgba(255,255,255,0.02);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system;background:linear-gradient(180deg,#070417 0%, #0b0b14 100%);color:var(--text);min-height:100vh}
+    .app { display:flex; gap:18px; max-width:1400px; margin:18px auto; padding:18px; align-items:flex-start; }
+    .sidebar {
+      width:320px;
+      background:var(--panel);
+      border-radius:14px;
+      padding:18px;
+      border:1px solid var(--glass);
+      flex-shrink:0;
+      height:calc(100vh - 72px);
+      overflow:auto;
+    }
+    .brand {display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    .logo {width:56px;height:56px;border-radius:12px;background:linear-gradient(90deg,var(--accent1),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:900;color:#071126;font-size:20px}
+    .brand h2{margin:0;font-size:18px}
+    .admin-user {font-size:13px;color:var(--muted);margin-bottom:12px}
+    .menu {display:flex;flex-direction:column;gap:8px;margin-top:6px}
+    .menu button {display:flex;gap:10px;align-items:center;padding:10px;border-radius:10px;border:0;background:transparent;color:var(--muted);cursor:pointer;text-align:left}
+    .menu button.active {background:linear-gradient(90deg,rgba(123,47,247,0.12),rgba(43,231,255,0.04));color:var(--text)}
+    .menu .section-title {margin:12px 0 6px;color:var(--muted);font-size:13px}
+    .main {
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      min-height:80vh;
+    }
+    .topbar {
+      display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;background:var(--panel);border:1px solid var(--glass)
+    }
+    .search {flex:1;margin:0 12px}
+    .search input{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)}
+    .content {display:grid;grid-template-columns:1fr;gap:12px}
+    .card {background:var(--card);padding:14px;border-radius:12px;border:1px solid var(--glass)}
+    .kpis {display:flex;gap:12px;flex-wrap:wrap}
+    .kpi {flex:1;min-width:180px;padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);position:relative;overflow:hidden}
+    .kpi .label{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .kpi .value{font-weight:900;font-size:20px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
+    th{color:var(--muted);font-weight:700}
+    .btn {padding:8px 10px;border-radius:8px;border:0;background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#071126;font-weight:700;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--text)}
+    .small{color:var(--muted);font-size:13px}
+    .flex-row{display:flex;gap:8px;align-items:center}
+    .right {margin-left:auto}
+    .panel-grid {display:grid;grid-template-columns:1fr 480px;gap:12px;align-items:start}
+    .scroll {max-height:60vh;overflow:auto;padding-right:6px}
+    .worker-item, .notify-item, .log-item {padding:8px;border-bottom:1px solid rgba(255,255,255,0.03)}
+    .toggle {display:inline-flex;align-items:center;gap:8px}
+    canvas {background:transparent}
+    footer{margin-top:12px;text-align:center;color:var(--muted);font-size:13px}
+    .badge {display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.04);font-weight:700}
+    .pill {padding:6px 10px;border-radius:999px;background:var(--glass-2);font-weight:700;color:var(--muted);font-size:13px}
+    .muted-panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02)}
+    .actions {display:flex;gap:8px;flex-wrap:wrap}
+    .kpi .sub {font-size:12px;color:var(--muted);margin-top:6px}
+    @media(max-width:1150px){ .app{flex-direction:column;padding:12px} .sidebar{width:100%;height:auto} .panel-grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+
+<div class="app" role="application" aria-live="polite">
+  <aside class="sidebar" aria-label="Admin sidebar">
+    <div class="brand">
+      <div class="logo">TSS</div>
+      <div>
+        <h2>Time Shop Save</h2>
+        <div class="small">Admin center</div>
+      </div>
+    </div>
+
+    <div class="admin-user" id="adminUserBadge">Not signed in</div>
+
+    <div class="menu" role="menu" aria-label="Main menu">
+      <div class="section-title">Overview</div>
+      <button id="mDashboard" class="active" role="menuitem">Dashboard</button>
+      <div class="section-title">Manage</div>
+      <button id="mShops" role="menuitem">Shops</button>
+      <button id="mOrders" role="menuitem">Orders</button>
+      <button id="mWithdrawals" role="menuitem">Withdrawals</button>
+      <button id="mWorkers" role="menuitem">Workers</button>
+      <button id="mIssues" role="menuitem">Issues & Tasks</button>
+      <button id="mRates" role="menuitem">Exchange Rates</button>
+      <div class="section-title">Tools</div>
+      <button id="mLogs" role="menuitem">Admin log</button>
+      <button id="mExport" role="menuitem">Export Data</button>
+      <div class="section-title">Session</div>
+      <button id="btnLogout" role="menuitem" class="ghost">Logout</button>
+    </div>
+
+    <div style="margin-top:14px">
+      <div class="small">Partners</div>
+      <div style="margin-top:8px">
+        <input id="partnerEmail" placeholder="partner email" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)"><div style="height:8px"></div>
+        <div class="actions"><button id="btnAddPartner" class="btn ghost">Add partner</button><button id="btnListPartners" class="btn ghost">List</button></div>
+      </div>
+    </div>
+
+  </aside>
+
+  <main class="main" id="mainArea">
+    <!-- topbar -->
+    <div class="topbar">
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="small">Signed as</div>
+        <div id="topAdminName" style="font-weight:700">—</div>
+        <div style="width:8px"></div>
+        <div class="pill" id="tillBadge">Till: Ksh 0.00</div>
+      </div>
+
+      <div class="search">
+        <input id="globalSearch" placeholder="Search shops, users, orders...">
+      </div>
+
+      <div class="flex-row">
+        <div class="small" id="companyIncomeTop">Company income: Ksh 0.00</div>
+        <div style="width:10px"></div>
+        <button id="quickRefresh" class="btn ghost">Refresh</button>
+      </div>
+    </div>
+
+    <!-- login card (if not authed) -->
+    <div id="loginCard" class="card" style="display:none">
+      <h3>Admin sign in</h3>
+      <p class="small">Enter the admin password to access the dashboard.</p>
+      <div style="margin-top:8px"><input id="adminPasswordInput" type="password" placeholder="Admin password" style="width:100%;padding:8px;border-radius:8px"></div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button id="adminSignIn" class="btn">Sign in</button>
+      </div>
+      <p class="small" style="margin-top:8px">Client-side password: <strong>Timeshopsave@001</strong></p>
+    </div>
+
+    <!-- authenticated area -->
+    <div id="dashboardContent" style="display:none">
+      <!-- Dashboard panel -->
+      <section id="dashboardPanel" class="card" style="display:block">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:800">Overview</div>
+            <div class="small">Company metrics, till & activity</div>
+          </div>
+          <div class="flex-row">
+            <div class="small">Period</div>
+            <select id="periodSelect">
+              <option value="12">Last 12 months</option>
+              <option value="6">Last 6 months</option>
+              <option value="3">Last 3 months</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:12px" class="kpis" id="kpiArea">
+          <!-- KPI cards injected by JS -->
+        </div>
+
+        <div style="margin-top:14px;display:grid;grid-template-columns:1fr 420px;gap:12px;align-items:start">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><strong>Company growth</strong><div class="small">Revenue / Income over time</div></div>
+              <div class="small">Chart</div>
+            </div>
+            <canvas id="growthChart" style="width:100%;height:240px;margin-top:12px"></canvas>
+            <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+              <button id="btnCollectFees" class="btn">Collect fees → Till</button>
+              <button id="btnAddTill" class="btn ghost">Manual Till Adjust</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;justify-content:space-between">
+              <div><strong>Top fees by shop</strong><div class="small">Shops generating the most fees</div></div>
+              <div class="small">Sort</div>
+            </div>
+            <div class="scroll" id="topFeesArea" style="margin-top:12px"></div>
+            <div style="margin-top:12px">
+              <div class="small">Company till ledger</div>
+              <div id="tillLedger" class="scroll" style="max-height:160px;margin-top:6px"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Shops panel -->
+      <section id="shopsPanel" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Shops</strong><div class="small">Manage shops and view per-shop fees</div></div>
+          <div class="flex-row">
+            <input id="shopSearch" placeholder="Filter shop name" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)">
+            <select id="shopSwitcher" style="padding:8px;border-radius:8px;background:transparent;color:var(--text)"><option value="">— Select shop to inspect —</option></select>
+            <button id="btnCreateShop" class="btn ghost">Create</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px" class="scroll">
+          <table id="shopsTable">
+            <thead><tr><th>Shop</th><th>Category</th><th>Owner</th><th>Shop fees (Ksh)</th><th>Orders</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div id="shopInspector" style="margin-top:12px;display:none" class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><strong id="inspectorShopName">Shop</strong><div class="small" id="inspectorOwner">Owner</div></div>
+            <div class="flex-row">
+              <button id="btnAlertShop" class="btn ghost">Send Alert</button>
+              <button id="btnSettleShop" class="btn">Settle to Till</button>
+            </div>
+          </div>
+          <div style="margin-top:12px" id="inspectorBody"></div>
+        </div>
+      </section>
+
+      <!-- Orders panel -->
+      <section id="ordersPanel" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Orders</strong><div class="small">All shop orders</div></div>
+          <div class="flex-row">
+            <input id="ordersSearch" placeholder="Search orders" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04)">
+            <select id="ordersShopFilter" style="padding:8px;border-radius:8px;background:transparent;color:var(--text)"><option value="">All shops</option></select>
+            <button id="refreshOrdersBtn" class="btn ghost">Refresh</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px" id="ordersListAdmin" class="scroll"></div>
+      </section>
+
+      <!-- Withdrawals panel -->
+      <section id="withdrawalsPanel" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Withdrawals</strong><div class="small">Shop withdrawals & requests</div></div>
+          <div class="flex-row">
+            <button id="btnRefreshWithdraw" class="btn ghost">Refresh</button>
+            <button id="btnExportWithdraws" class="btn ghost">Export</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px" id="withdrawList" class="scroll"></div>
+      </section>
+
+      <!-- Workers panel -->
+      <section id="workersPanel" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Workers</strong><div class="small">Admin staff & issue assignments</div></div>
+          <div class="flex-row">
+            <input id="workerEmail" placeholder="email" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04)"><button id="btnAddWorker" class="btn">Add</button>
+          </div>
+        </div>
+        <div style="margin-top:12px" id="workersArea" class="scroll"></div>
+      </section>
+
+      <!-- Issues & Tasks -->
+      <section id="issuesPanel" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Issues & Tasks</strong><div class="small">Admin errors, notify requests and tasks for workers</div></div>
+          <div class="flex-row">
+            <select id="assignWorkerSelect"><option value="">Assign to worker...</option></select>
+            <button id="btnAssign" class="btn">Assign selected</button>
+            <button id="btnResolve" class="btn ghost">Mark resolved</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px" id="issuesArea" class="scroll"></div>
+      </section>
+
+      <!-- Rates panel -->
+      <section id="ratesPanel" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Exchange rates</strong><div class="small">1 KSH → X currency</div></div>
+          <div class="small">Editable</div>
+        </div>
+
+        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div><label class="small">USD</label><input id="rateUSD" /></div>
+          <div><label class="small">EUR</label><input id="rateEUR" /></div>
+          <div><label class="small">GBP</label><input id="rateGBP" /></div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button id="btnSaveRates" class="btn">Save rates</button>
+          <button id="btnFetchRates" class="btn ghost">Fetch (optional)</button>
+        </div>
+      </section>
+
+      <!-- Logs -->
+      <section id="logsPanel" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Admin log</strong><div class="small">Activity & audit trail</div></div>
+          <div><button id="btnClearLog" class="btn ghost">Clear</button></div>
+        </div>
+        <div id="adminLogArea" class="scroll" style="margin-top:12px"></div>
+      </section>
+
+      <!-- Export -->
+      <section id="exportPanel" class="card" style="display:none">
+        <div><strong>Export data</strong><div class="small">Download all localStorage as JSON</div></div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button id="btnExportAll" class="btn">Export all</button>
+        </div>
+      </section>
+
+    </div>
+
+    <footer class="small" style="text-align:center;padding:10px 0">Admin panel • Local-only mode • Signed in as <span id="footerAdmin">—</span></footer>
+  </main>
+</div>
+
+<script>
+/* Enhanced Admin Panel — Local-first bookkeeping, till, withdrawals, shop controls
+   - Adds company_till ledger and UI to collect fees and process withdrawals.
+   - Shop inspector with quick alert and settle actions.
+   - Withdraw request workflow: shops request withdrawals (expected via shop UI writing withdraw_requests[]).
+   - Approve/reject withdraws: deducts company_till and credits shopkeeper balance (user:... or shopkeeper_balance_*)
+   - Partners: simple list and export.
+   - All data stored in localStorage keys:
+      admin_log, admin_workers, local_shops, shop_orders_<shopKey>, orders_<email>, customer_transactions_<email>,
+      company_income (fees waiting to be collected), company_till (actual stored funds), company_till_ledger (array),
+      withdraw_requests (array), admin_alerts (array), admin_workers, admin_errors, notify_requests
+*/
+
+const ADMIN_PW = 'Timeshopsave@001';
+let STATE = { authed: false };
+
+function el(id){ return document.getElementById(id); }
+function readJSON(k){ try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }
+function writeJSON(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+function nowISO(){ return new Date().toISOString(); }
+function safeKey(s){ return String(s||'').replace(/[^a-z0-9_\\-]/ig,'_'); }
+function n(v){ return Math.round(Number(v||0)*100)/100; }
+
+/* ----- Initialization helpers for new keys ----- */
+function ensureCompanyKeys(){
+  if(localStorage.getItem('company_income') === null) localStorage.setItem('company_income','0');
+  if(localStorage.getItem('company_till') === null) localStorage.setItem('company_till', String(n(readJSON('company_income') || 0)));
+  if(!readJSON('company_till_ledger')) writeJSON('company_till_ledger', []);
+  if(!readJSON('withdraw_requests')) writeJSON('withdraw_requests', []);
+  if(!readJSON('admin_alerts')) writeJSON('admin_alerts', []);
+  if(!readJSON('company_partners')) writeJSON('company_partners', []);
+}
+ensureCompanyKeys();
+
+/* ----- Basic data helpers ----- */
+function getAllUsers(){
+  const res = [];
+  for(const k in localStorage){
+    if(!k.startsWith('user:')) continue;
+    try { const u = JSON.parse(localStorage.getItem(k)); if(u) res.push(u); } catch {}
+  }
+  return res;
+}
+function getAllShops(){
+  const s = readJSON('local_shops'); return Array.isArray(s) ? s : [];
+}
+function getCustomerCount(){ return getAllUsers().filter(u => u.role === 'customer').length; }
+
+/* ----- Till helpers ----- */
+function getCompanyTill(){ return Number(localStorage.getItem('company_till') || 0); }
+function setCompanyTill(amount){
+  localStorage.setItem('company_till', String(n(amount)));
+  renderTillBadge();
+}
+function pushTillLedger(entry){
+  const arr = readJSON('company_till_ledger') || [];
+  arr.unshift(Object.assign({ when: nowISO() }, entry));
+  writeJSON('company_till_ledger', arr);
+}
+function renderTillBadge(){
+  const val = getCompanyTill();
+  el('tillBadge').textContent = `Till: Ksh ${n(val).toFixed(2)}`;
+}
+
+/* ----- Admin log & events ----- */
+function pushAdminLog(obj){ const arr = readJSON('admin_log') || []; arr.unshift(obj); writeJSON('admin_log', arr); renderAdminLog(); }
+
+/* ----- KPIs & dashboard ----- */
+function computeFeesAndIncome(){
+  let totalTopupFeesKsh = 0, totalOrderFeesKsh = 0;
+  for(const k in localStorage){
+    if(k.startsWith('customer_transactions_')){
+      try { const arr = JSON.parse(localStorage.getItem(k) || '[]') || []; arr.forEach(t => { if(t && t.feeKsh) totalTopupFeesKsh += Number(t.feeKsh || 0); }); } catch {}
+    }
+    if(k.startsWith('shop_orders_')){
+      try { const arr = JSON.parse(localStorage.getItem(k) || '[]') || []; arr.forEach(o => { if(o && (o.feeKsh || o.fee)) totalOrderFeesKsh += Number(o.feeKsh || o.fee || 0); }); } catch {}
+    }
+  }
+  const companyStored = Number(localStorage.getItem('company_income') || 0);
+  return { totalTopupFeesKsh, totalOrderFeesKsh, totalFeesKsh: totalTopupFeesKsh + totalOrderFeesKsh, companyStored };
+}
+
+function renderKPIs(){
+  const { totalFeesKsh, companyStored } = computeFeesAndIncome();
+  const customers = getCustomerCount();
+  const shops = getAllShops().length;
+  const kpiArea = el('kpiArea'); kpiArea.innerHTML = '';
+
+  const kpis = [
+    { label: 'Customers', value: customers, sub: 'Registered customers' },
+    { label: 'Shops', value: shops, sub: 'Registered shops' },
+    { label: 'Company income (awaiting collect)', value: `Ksh ${n(companyStored).toFixed(2)}`, sub: 'Fees yet to settle to till' },
+    { label: 'Total fees (Ksh)', value: `Ksh ${n(totalFeesKsh).toFixed(2)}`, sub: 'All fees recorded' }
+  ];
+  kpis.forEach(k => {
+    const div = document.createElement('div'); div.className='kpi';
+    div.innerHTML = `<div class="label">${k.label}</div><div class="value">${k.value}</div><div class="sub">${k.sub}</div>`;
+    kpiArea.appendChild(div);
+  });
+}
+
+/* ----- Chart ----- */
+let growthChart = null;
+function buildMonthlySeries(monthsBack = 12){
+  const labels = [], now = new Date();
+  for(let i = monthsBack-1; i>=0; i--){
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    labels.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  const totals = labels.map(_=>0);
+  function monthIndex(dateStr){
+    const d = dateStr ? new Date(dateStr) : null;
+    if(!d || isNaN(d)) return -1;
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    return labels.indexOf(key);
+  }
+  for(const k in localStorage){
+    if(k.startsWith('customer_transactions_')){
+      try { const arr = JSON.parse(localStorage.getItem(k) || '[]') || []; arr.forEach(t => { const idx=monthIndex(t.when||t.createdAt); if(idx!==-1) totals[idx]+=Number(t.feeKsh||0); }); } catch {}
+    }
+    if(k.startsWith('shop_orders_')){
+      try { const arr = JSON.parse(localStorage.getItem(k) || '[]') || []; arr.forEach(o => { const idx=monthIndex(o.createdAt||o.when); if(idx!==-1) totals[idx]+=Number(o.feeKsh||o.fee||0); }); } catch {}
+    }
+  }
+  return { labels, totals };
+}
+
+function renderGrowthChart(){
+  const months = Number(el('periodSelect').value || 12);
+  const { labels, totals } = buildMonthlySeries(months);
+  const ctx = el('growthChart').getContext('2d');
+  if(growthChart) growthChart.destroy();
+  growthChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label:'Fees(Ksh)', data: totals, borderColor: '#7b2ff7', backgroundColor: 'rgba(123,47,247,0.12)', tension:0.3, fill:true }]},
+    options: { responsive:true, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#cbd5e1'}}, y:{ticks:{color:'#cbd5e1'}} } }
+  });
+}
+
+/* ----- Top fees & till ledger ----- */
+function perShopFees(){
+  const shops = getAllShops();
+  const out = shops.map(s => {
+    const key = 'shop_orders_' + safeKey(s.shopName);
+    let sum = 0, count = 0;
+    try { const arr = JSON.parse(localStorage.getItem(key) || '[]') || []; arr.forEach(o => { sum += Number(o.feeKsh || o.fee || 0); count++; }); } catch {}
+    return { shopName: s.shopName, owner: s.ownerEmail, feeKsh: sum, orders: count };
+  });
+  out.sort((a,b)=>b.feeKsh - a.feeKsh);
+  return out;
+}
+
+function renderTopFees(){
+  const area = el('topFeesArea'); area.innerHTML = '';
+  perShopFees().slice(0,12).forEach(s => {
+    const div = document.createElement('div'); div.style.display='flex'; div.style.justifyContent='space-between'; div.style.padding='8px'; div.style.borderBottom='1px solid rgba(255,255,255,0.03)';
+    div.innerHTML = `<div><strong>${s.shopName}</strong><div class="small">${s.owner||''}</div></div><div style="text-align:right"><div style="font-weight:800">${n(s.feeKsh).toFixed(2)} Ksh</div><div class="small">${s.orders} orders</div></div>`;
+    area.appendChild(div);
+  });
+}
+
+function renderTillLedger(){
+  const ledger = readJSON('company_till_ledger') || [];
+  const elg = el('tillLedger'); elg.innerHTML = '';
+  if(!ledger.length){ elg.innerHTML = '<div class="small">No till transactions yet</div>'; return; }
+  ledger.slice(0,200).forEach(tx => {
+    const d = document.createElement('div'); d.className='log-item';
+    d.innerHTML = `<div style="display:flex;justify-content:space-between"><div><strong>${tx.type}</strong><div class="small">${tx.note||''}</div></div><div class="small">${tx.when}</div></div><div style="margin-top:6px">Ksh ${n(tx.amount).toFixed(2)}</div>`;
+    elg.appendChild(d);
+  });
+}
+
+/* ----- Shop inspector & alerts ----- */
+function populateShopSwitcher(){
+  const select = el('shopSwitcher'); select.innerHTML = '<option value="">— Select shop to inspect —</option>';
+  getAllShops().forEach(s => {
+    const opt = document.createElement('option'); opt.value = s.shopName; opt.textContent = s.shopName; select.appendChild(opt);
+  });
+  const ordersFilter = el('ordersShopFilter'); if(ordersFilter){ ordersFilter.innerHTML = '<option value="">All shops</option>'; getAllShops().forEach(s=>{ const o=document.createElement('option'); o.value=s.shopName; o.textContent=s.shopName; ordersFilter.appendChild(o); }); }
+}
+
+function openShopInspector(shopName){
+  const shop = getAllShops().find(s => s.shopName === shopName);
+  if(!shop) return;
+  el('shopInspector').style.display = '';
+  el('inspectorShopName').textContent = shop.shopName;
+  el('inspectorOwner').textContent = `Owner: ${shop.ownerEmail||'—'}`;
+  // show quick stats and recent orders
+  const key = 'shop_orders_' + safeKey(shop.shopName);
+  const arr = readJSON(key) || [];
+  const fees = arr.reduce((sum,o)=> sum + Number(o.feeKsh || o.fee || 0), 0);
+  const ordersHtml = arr.slice(0,20).map(o => `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.03)"><strong>${o.orderId}</strong> • ${o.status||''} • Ksh ${n(o.totalKsh).toFixed(2)} ${o.pickupCode?`• Code:${o.pickupCode}`:''}</div>`).join('');
+  el('inspectorBody').innerHTML = `<div class="muted-panel"><div style="display:flex;justify-content:space-between"><div><strong>Fees (Ksh)</strong><div class="small">${n(fees).toFixed(2)}</div></div><div><strong>Orders</strong><div class="small">${arr.length}</div></div></div></div><div style="margin-top:10px"><strong>Recent Orders</strong>${ordersHtml || '<div class="small">No orders</div>'}</div>`;
+}
+
+el('shopSwitcher').addEventListener('change', (e)=> {
+  const v = e.target.value;
+  if(v) openShopInspector(v);
+  else el('shopInspector').style.display = 'none';
+});
+
+el('btnAlertShop').addEventListener('click', ()=> {
+  const shop = el('shopSwitcher').value;
+  if(!shop) return alert('Select a shop first');
+  const note = prompt('Enter alert message to send to shop owner:','Important update from admin');
+  if(!note) return;
+  // store alert and notify owner via notify_requests (for local demos)
+  const alerts = readJSON('admin_alerts') || [];
+  alerts.unshift({ when: nowISO(), shopName: shop, note, by: 'Admin' });
+  writeJSON('admin_alerts', alerts);
+  // also create notify_requests for owner so they can be picked up by site
+  const shops = getAllShops(); const s = shops.find(x=>x.shopName===shop);
+  if(s && s.ownerEmail){
+    const nr = readJSON('notify_requests') || []; nr.unshift({ shopName: shop, email: s.ownerEmail, createdAt: nowISO(), type:'admin_alert', note }); writeJSON('notify_requests', nr);
+  }
+  pushAdminLog({ when: nowISO(), type:'admin_alert_sent', shop, note });
+  alert('Alert recorded and notify request created.');
+});
+
+/* ----- Fees collection (company_income → company_till) ----- */
+el('btnCollectFees').addEventListener('click', ()=> {
+  const income = Number(localStorage.getItem('company_income') || 0);
+  if(!income || income <= 0) return alert('No company income to collect.');
+  const confirmCollect = confirm(`Collect company income Ksh ${n(income).toFixed(2)} into the company till?`);
+  if(!confirmCollect) return;
+  // move to till
+  const prevTill = getCompanyTill();
+  setCompanyTill(prevTill + income);
+  pushTillLedger({ type:'collect_fees', amount: n(income), note: 'Collected pending company income', by: 'Admin' });
+  localStorage.setItem('company_income','0');
+  pushAdminLog({ when: nowISO(), type:'fees_collected', amount: n(income) });
+  renderAll();
+  alert('Collected to till.');
+});
+
+/* ----- Manual till adjust modal (simple prompt) ----- */
+el('btnAddTill').addEventListener('click', ()=> {
+  const action = prompt('Type "add" to deposit to till or "deduct" to withdraw from till (admin action):','add');
+  if(!action) return;
+  const amt = Number(prompt('Amount (Ksh):','0'));
+  if(!amt || amt <= 0) return alert('Invalid amount');
+  const note = prompt('Note','Admin manual adjustment');
+  if(String(action).toLowerCase() === 'add'){
+    setCompanyTill(getCompanyTill() + amt);
+    pushTillLedger({ type:'manual_deposit', amount: n(amt), note, by:'Admin' });
+    pushAdminLog({ when: nowISO(), type:'till_deposit', amount: n(amt), note });
+    alert('Deposited to till.');
+  } else {
+    if(getCompanyTill() < amt) return alert('Insufficient till balance');
+    setCompanyTill(getCompanyTill() - amt);
+    pushTillLedger({ type:'manual_withdraw', amount: n(-amt), note, by:'Admin' });
+    pushAdminLog({ when: nowISO(), type:'till_withdraw', amount: n(amt), note });
+    alert('Deducted from till.');
+  }
+  renderTillLedger();
+  renderTillBadge();
+});
+
+/* ----- Withdrawals processing ----- */
+function renderWithdrawals(){
+  const arr = readJSON('withdraw_requests') || [];
+  const out = el('withdrawList'); out.innerHTML = '';
+  if(!arr.length){ out.innerHTML = '<div class="small">No withdrawal requests</div>'; return; }
+  arr.forEach(w => {
+    const div = document.createElement('div'); div.className='log-item';
+    div.innerHTML = `<div style="display:flex;justify-content:space-between"><div><strong>${w.shopName}</strong> • ${w.ownerEmail||''}</div><div class="small">${w.status||'pending'} • ${w.createdAt}</div></div>
+      <div style="margin-top:6px">Requested: Ksh ${n(w.amountKsh).toFixed(2)} • Note: ${w.note||''}</div>`;
+    const actions = document.createElement('div'); actions.style.marginTop='8px'; actions.style.display='flex'; actions.style.gap='8px';
+    if(w.status === 'pending'){
+      const approve = document.createElement('button'); approve.className = 'btn'; approve.textContent='Approve';
+      approve.onclick = ()=> processWithdraw(w.id, true);
+      const reject = document.createElement('button'); reject.className='btn ghost'; reject.textContent='Reject';
+      reject.onclick = ()=> processWithdraw(w.id, false);
+      actions.appendChild(approve); actions.appendChild(reject);
+    } else {
+      actions.innerHTML = `<div class="small">Processed by ${w.processedBy||'Admin'} at ${w.processedAt||''}</div>`;
+    }
+    div.appendChild(actions);
+    out.appendChild(div);
+  });
+}
+
+function processWithdraw(id, approve){
+  let arr = readJSON('withdraw_requests') || [];
+  const idx = arr.findIndex(r => r.id === id);
+  if(idx === -1) return alert('Request not found');
+  const req = arr[idx];
+  if(req.status !== 'pending') return alert('Already processed');
+
+  if(!approve){
+    req.status = 'rejected'; req.processedAt = nowISO(); req.processedBy = 'Admin'; writeJSON('withdraw_requests', arr);
+    pushAdminLog({ when: nowISO(), type:'withdraw_rejected', id, shop: req.shopName, amount: n(req.amountKsh) });
+    renderWithdrawals();
+    return alert('Rejected');
+  }
+
+  const till = getCompanyTill();
+  if(till < req.amountKsh) return alert('Insufficient company till to approve withdrawal.');
+  // deduct till, update ledger
+  setCompanyTill(till - req.amountKsh);
+  pushTillLedger({ type:'withdraw_approved', amount: n(-req.amountKsh), note: `Withdrawal to ${req.ownerEmail || req.shopName}`, by: 'Admin' });
+
+  // credit shopkeeper (best-effort: user:owner or shopkeeper_balance_)
+  const owner = req.ownerEmail;
+  if(owner){
+    const ownerKey = 'user:' + owner;
+    const raw = localStorage.getItem(ownerKey);
+    if(raw){
+      try { const u = JSON.parse(raw); u.balanceKsh = Number(u.balanceKsh || 0) + Number(req.amountKsh); localStorage.setItem(ownerKey, JSON.stringify(u)); }
+      catch(e){ const prev = Number(localStorage.getItem('shopkeeper_balance_' + owner) || 0); localStorage.setItem('shopkeeper_balance_' + owner, String(n(prev + req.amountKsh))); }
+    } else {
+      const prev = Number(localStorage.getItem('shopkeeper_balance_' + owner) || 0); localStorage.setItem('shopkeeper_balance_' + owner, String(n(prev + req.amountKsh)));
+    }
+  }
+
+  req.status = 'approved'; req.processedAt = nowISO(); req.processedBy = 'Admin';
+  writeJSON('withdraw_requests', arr);
+  pushAdminLog({ when: nowISO(), type:'withdraw_approved', id, shop: req.shopName, amount: n(req.amountKsh) });
+  renderWithdrawals(); renderTillLedger(); renderTillBadge();
+  alert('Approved and credited (numbers updated locally).');
+}
+
+/* ----- Shops, Orders, Workers, Issues code mostly reused but with extra hooks ----- */
+function renderShopsTable(){
+  const shops = getAllShops();
+  const tbody = el('shopsTable').querySelector('tbody'); tbody.innerHTML = '';
+  const q = (el('shopSearch')?.value || '').toLowerCase();
+  shops.filter(s => !q || (s.shopName||'').toLowerCase().includes(q)).forEach(s => {
+    const key = 'shop_orders_' + safeKey(s.shopName);
+    let sum = 0; let count = 0;
+    try { const arr = JSON.parse(localStorage.getItem(key) || '[]') || []; arr.forEach(o => { sum += Number(o.feeKsh || o.fee || 0); count++; }); } catch {}
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(s.shopName)}</td><td>${escapeHtml(s.category||'')}</td><td>${escapeHtml(s.ownerEmail||'')}</td><td>${Number(sum).toFixed(2)}</td><td>${count}</td><td>${escapeHtml(s.status||'Inactive')}</td><td></td>`;
+    const actionsTd = tr.querySelector('td:last-child');
+    const view = document.createElement('button'); view.className='btn ghost'; view.textContent='View'; view.onclick = ()=> { el('shopSwitcher').value = s.shopName; openShopInspector(s.shopName); };
+    const toggle = document.createElement('button'); toggle.className='btn'; toggle.textContent = (String(s.status||'').toLowerCase() === 'active') ? 'Deactivate' : 'Activate';
+    toggle.onclick = ()=> { toggleShopStatus(s.shopName); renderShopsTable(); populateShopSwitcher(); renderTopFees(); };
+    actionsTd.appendChild(view); actionsTd.appendChild(toggle);
+    tbody.appendChild(tr);
+  });
+}
+
+function toggleShopStatus(shopName){
+  let shops = readJSON('local_shops') || [];
+  const idx = shops.findIndex(s => (s.shopName||s.name) === shopName);
+  if(idx === -1){
+    alert('Shop not found in local_shops');
+    return;
+  }
+  shops[idx].status = shops[idx].status && String(shops[idx].status).toLowerCase() === 'active' ? 'Inactive' : 'Active';
+  writeJSON('local_shops', shops); localStorage.setItem('last_shop_change', nowISO());
+  pushAdminLog({ when: nowISO(), type:'shop_status_toggled', shop: shopName, status: shops[idx].status });
+}
+
+/* ----- Orders admin ----- */
+function renderOrdersAdmin(){
+  const out = el('ordersListAdmin'); out.innerHTML = '';
+  const shopFilter = el('ordersShopFilter')?.value || '';
+  for(const k in localStorage){
+    if(!k.startsWith('shop_orders_')) continue;
+    try {
+      const arr = JSON.parse(localStorage.getItem(k) || '[]') || [];
+      const shopKeyName = k.replace('shop_orders_','');
+      if(shopFilter && shopFilter !== shopKeyName) continue;
+      if(!arr.length) continue;
+      const shopDiv = document.createElement('div'); shopDiv.className='card'; shopDiv.style.marginBottom='12px';
+      shopDiv.innerHTML = `<div style="font-weight:800">${escapeHtml(shopKeyName)}</div>`;
+      arr.slice(0,200).forEach(o => {
+        const row = document.createElement('div'); row.className='log-item';
+        row.innerHTML = `<div style="display:flex;justify-content:space-between"><div><strong>${escapeHtml(o.orderId)}</strong> • ${escapeHtml(o.customerEmail||o.customer||'')}</div><div class="small">${escapeHtml(o.status||'')}</div></div><div class="small">Total Ksh ${Number(o.totalKsh||o.total||0).toFixed(2)} • Fee Ksh ${Number(o.feeKsh||o.fee||0).toFixed(2)} • Code: ${escapeHtml(o.pickupCode||'')}</div>`;
+        const btn = document.createElement('button'); btn.className='btn ghost'; btn.textContent='Mark Picked';
+        btn.onclick = ()=> { markOrderPickedFromAdmin(shopKeyName, o.pickupCode || o.orderId); };
+        row.appendChild(btn);
+        shopDiv.appendChild(row);
+      });
+      out.appendChild(shopDiv);
+    } catch {}
+  }
+}
+
+/* ----- Mark picked (same semantics) ----- */
+function markOrderPickedFromAdmin(shop, code){
+  const key = 'shop_orders_' + safeKey(shop);
+  let arr = readJSON(key) || [];
+  const idx = arr.findIndex(o => (o.pickupCode === code || o.orderId === code) && o.status !== 'Picked');
+  if(idx === -1) return alert('Order not found');
+  arr[idx].status = 'Picked'; arr[idx].pickedAt = nowISO(); writeJSON(key, arr);
+  const cust = arr[idx].customerEmail;
+  if(cust){
+    let custArr = readJSON('orders_' + cust) || [];
+    const oi = custArr.findIndex(o => (o.pickupCode === code || o.orderId === arr[idx].orderId));
+    if(oi !== -1){ custArr[oi].status = 'Picked'; custArr[oi].pickedAt = nowISO(); writeJSON('orders_' + cust, custArr); }
+  }
+  pushAdminLog({ when: nowISO(), type:'admin_mark_picked', shop, code });
+  localStorage.setItem('last_order_change', nowISO());
+  renderAll();
+  alert('Marked picked');
+}
+
+/* ----- Admin log rendering ----- */
+function renderAdminLog(){
+  const arr = readJSON('admin_log') || [];
+  const out = el('adminLogArea'); out.innerHTML = '';
+  if(!arr.length){ out.innerHTML = '<div class="small">No events</div>'; return; }
+  arr.slice(0,500).forEach(e => {
+    const d = document.createElement('div'); d.className='log-item';
+    d.innerHTML = `<div style="display:flex;justify-content:space-between"><div style="font-weight:700">${escapeHtml(e.type)}</div><div class="small">${escapeHtml(e.when)}</div></div><pre class="small">${escapeHtml(JSON.stringify(e,null,2))}</pre>`;
+    out.appendChild(d);
+  });
+}
+
+/* ----- Workers & Issues (reuse previous logic; small adaptions) ----- */
+function loadWorkers(){ /* re-uses previous code */ const arr = readJSON('admin_workers') || []; const wrap = el('workersArea'); wrap.innerHTML=''; const assignSelect = el('assignWorkerSelect'); if(assignSelect) assignSelect.innerHTML='<option value="">Assign to worker...</option>'; if(!arr.length){ wrap.innerHTML='<div class="small">No workers</div>'; return; } arr.forEach(w=>{ const d=document.createElement('div'); d.className='worker-item'; d.innerHTML = `<div style="display:flex;justify-content:space-between"><div><strong>${escapeHtml(w.email)}</strong><div class="small">${escapeHtml(w.createdAt||'')}</div></div><div><button class="btn ghost" data-email="${escapeHtml(w.email)}">Remove</button></div></div>`; wrap.appendChild(d); if(assignSelect){ const o=document.createElement('option'); o.value=w.email; o.textContent=w.email; assignSelect.appendChild(o);} }); wrap.querySelectorAll('button[data-email]').forEach(b=>b.addEventListener('click', (e)=>{ const em = e.target.dataset.email; if(!confirm('Remove worker ' + em + '?')) return; let arr = readJSON('admin_workers') || []; arr = arr.filter(x=>x.email!==em); writeJSON('admin_workers', arr); pushAdminLog({ when: nowISO(), type:'worker_removed', email: em }); loadWorkers(); })); }
+el('btnAddWorker')?.addEventListener('click', ()=>{ const em = el('workerEmail')?.value?.trim(); if(!em) return alert('Enter email'); let arr = readJSON('admin_workers') || []; if(arr.find(x=>x.email===em)) return alert('Worker exists'); arr.push({ email: em, createdAt: nowISO() }); writeJSON('admin_workers', arr); pushAdminLog({ when: nowISO(), type:'worker_added', email: em }); el('workerEmail').value=''; loadWorkers(); });
+
+/* ----- Issues render/assign/resolve (reuse gatherIssues) ----- */
+function gatherIssues(){
+  const issues = [];
+  const adminErrors = readJSON('admin_errors') || []; adminErrors.forEach((e,i)=> issues.push(Object.assign({ _id:'err_'+i, source:'admin_error' }, e)));
+  const notifies = readJSON('notify_requests') || []; notifies.forEach((n,i)=> issues.push(Object.assign({ _id:'notify_'+i, source:'notify_request' }, n)));
+  const adminLog = readJSON('admin_log') || []; adminLog.filter(l => l.type && (String(l.type).toLowerCase().includes('error')||String(l.type).toLowerCase().includes('issue'))).forEach((l,i)=> issues.push(Object.assign({ _id:'log_'+i, source:'admin_log' }, l)));
+  return issues;
+}
+function renderIssues(){
+  const arr = gatherIssues(); const out = el('issuesArea'); out.innerHTML=''; if(!arr.length){ out.innerHTML='<div class="small">No issues</div>'; return; } arr.forEach(it=>{ const div=document.createElement('div'); div.className='log-item'; const assigned = it.assignedTo || '—'; const status = it.resolved ? 'Resolved' : (it.status || 'Open'); div.innerHTML = `<div style="display:flex;justify-content:space-between"><div><strong>${escapeHtml(it.source)}</strong> <span class="small">${escapeHtml(it.shopName||it.email||'')}</span></div><div class="small">${escapeHtml(status)} • assigned: ${escapeHtml(assigned)}</div></div><div class="small" style="margin-top:6px">${escapeHtml(JSON.stringify(it,null,2))}</div><div style="margin-top:8px;display:flex;gap:8px"><input type="checkbox" class="issueSelect" data-id="${escapeHtml(it._id||it.id||'')}"> Select</div>`; out.appendChild(div); });
+}
+
+/* ----- Rates, Export, Partners ----- */
+function loadRates(){
+  el('rateUSD').value = localStorage.getItem('rate_usd') || '0.0075';
+  el('rateEUR').value = localStorage.getItem('rate_eur') || '0.0068';
+  el('rateGBP').value = localStorage.getItem('rate_gbp') || '0.0058';
+}
+el('btnSaveRates')?.addEventListener('click', ()=> { localStorage.setItem('rate_usd', el('rateUSD').value); localStorage.setItem('rate_eur', el('rateEUR').value); localStorage.setItem('rate_gbp', el('rateGBP').value); pushAdminLog({ when: nowISO(), type:'rates_updated', usd: el('rateUSD').value, eur: el('rateEUR').value, gbp: el('rateGBP').value }); alert('Rates saved'); });
+
+el('btnExportAll')?.addEventListener('click', ()=> {
+  const payload = {};
+  for(const k in localStorage){
+    try { payload[k] = JSON.parse(localStorage.getItem(k)); } catch { payload[k] = localStorage.getItem(k); }
+  }
+  const blob = new Blob([JSON.stringify(payload,null,2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'tss_export_'+(new Date().toISOString())+'.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+/* Partners */
+el('btnAddPartner')?.addEventListener('click', ()=> {
+  const em = el('partnerEmail').value.trim(); if(!em) return alert('Enter partner email'); let arr = readJSON('company_partners') || []; if(arr.find(p=>p.email===em)) return alert('Partner exists'); arr.push({ email: em, addedAt: nowISO() }); writeJSON('company_partners', arr); pushAdminLog({ when: nowISO(), type:'partner_added', email: em }); alert('Partner added'); el('partnerEmail').value=''; });
+el('btnListPartners')?.addEventListener('click', ()=> {
+  const arr = readJSON('company_partners') || []; if(!arr.length) return alert('No partners'); alert('Partners:\\n' + arr.map(p=>`${p.email} • ${p.addedAt}`).join('\\n'));
+});
+
+/* ----- Withdraw Requests Export ----- */
+el('btnExportWithdraws')?.addEventListener('click', ()=> {
+  const payload = readJSON('withdraw_requests') || [];
+  const blob = new Blob([JSON.stringify(payload,null,2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'withdraw_requests_'+(new Date().toISOString())+'.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+/* ----- Search and navigation ----- */
+const panels = {
+  mDashboard: 'dashboardPanel',
+  mShops: 'shopsPanel',
+  mOrders: 'ordersPanel',
+  mWithdrawals: 'withdrawalsPanel',
+  mWorkers: 'workersPanel',
+  mIssues: 'issuesPanel',
+  mRates: 'ratesPanel',
+  mLogs: 'logsPanel',
+  mExport: 'exportPanel'
+};
+Object.keys(panels).forEach(btnId => {
+  const btn = el(btnId);
+  if(!btn) return;
+  btn.addEventListener('click', ()=> {
+    document.querySelectorAll('.menu button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    Object.values(panels).forEach(pid => { const p = el(pid); if(p) p.style.display = 'none'; });
+    const pid = panels[btnId];
+    if(pid) el(pid).style.display = '';
+    // render selected
+    switch(btnId){
+      case 'mShops': renderShopsTable(); populateShopSwitcher(); break;
+      case 'mOrders': renderOrdersAdmin(); break;
+      case 'mWithdrawals': renderWithdrawals(); break;
+      case 'mWorkers': loadWorkers(); break;
+      case 'mIssues': renderIssues(); break;
+      case 'mRates': loadRates(); break;
+      case 'mLogs': renderAdminLog(); break;
+      case 'mDashboard': renderAll(); break;
+    }
+  });
+});
+
+/* ----- Authentication restore ----- */
+el('adminSignIn').addEventListener('click', ()=>{
+  const pw = el('adminPasswordInput').value || '';
+  if(pw === ADMIN_PW){
+    sessionStorage.setItem('tss_admin_auth','1');
+    STATE.authed = true;
+    el('loginCard').style.display='none';
+    el('dashboardContent').style.display='';
+    el('adminUserBadge').textContent = 'Admin';
+    el('topAdminName').textContent = 'Admin';
+    el('footerAdmin').textContent = 'Admin';
+    renderAll();
+  } else alert('Incorrect password');
+});
+el('btnLogout').addEventListener('click', ()=>{ sessionStorage.removeItem('tss_admin_auth'); STATE.authed=false; el('loginCard').style.display=''; el('dashboardContent').style.display='none'; el('adminUserBadge').textContent='Not signed in'; });
+
+if(sessionStorage.getItem('tss_admin_auth')) {
+  STATE.authed = true; el('loginCard').style.display='none'; el('dashboardContent').style.display=''; el('adminUserBadge').textContent = 'Admin'; el('topAdminName').textContent = 'Admin'; el('footerAdmin').textContent = 'Admin'; renderAll();
+} else { el('loginCard').style.display=''; el('dashboardContent').style.display='none'; }
+
+/* ----- Render master functions ----- */
+function renderAll(){
+  ensureCompanyKeys();
+  renderKPIs();
+  renderGrowthChart();
+  renderTopFees();
+  renderTillLedger();
+  renderTillBadge();
+  renderAdminLog();
+  renderShopsTable();
+  populateShopSwitcher();
+  renderOrdersAdmin();
+  loadWorkers();
+  renderIssues();
+  renderWithdrawals();
+  loadRates();
+}
+
+/* ----- Storage listener for live sync ----- */
+window.addEventListener('storage', (e)=>{
+  if(!e.key) return;
+  const relevantPrefixes = ['local_shops','admin_log','notify_requests','admin_errors','company_income','company_till','company_till_ledger','orders_','shop_orders_','customer_transactions_','admin_workers','withdraw_requests','admin_alerts','last_shop_change','last_order_change','last_tx_change'];
+  if(relevantPrefixes.some(p => e.key === p || e.key.startsWith(p))){
+    renderAll();
+  }
+});
+
+/* ----- Utility ----- */
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ----- Initial render if authed ----- */
+if(STATE.authed) renderAll();
+
+/* Expose some functions for console debugging */
+window.tss = {
+  renderAll, getCompanyTill, setCompanyTill, pushTillLedger, processWithdraw, renderWithdrawals
+};
+</script>
+</body>
+</html>
