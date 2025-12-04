@@ -4,7 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Shop — Time Shop Save</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Favicon Option A — Elegant gradient rounded-square with TSS -->
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='100' height='100' rx='16' fill='url(%23g)'/><text x='50' y='60' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='36' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+  <link rel="apple-touch-icon"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g2' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='120' height='120' rx='20' fill='url(%23g2)'/><text x='60' y='78' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='44' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+  <meta name="theme-color" content="#7b2ff7">
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700,800&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg1:#070416;
@@ -97,101 +105,227 @@
 </div>
 
 <script>
+/*
+ Robust shop.html that uses the same authoritative local_shops source as explore.html.
+ - Always reads status from local_shops first, then from shop_<name>, then from user:<owner>.
+ - If owner user record indicates shopActive true but local_shops is out-of-sync, this page will sync local_shops
+   (update status to "Active") so Explore and other tabs show the correct status immediately.
+ - Product layout and behavior unchanged: qty controls, grid, cart stored at cart_<shopKey>.
+ - Listens for storage events and refreshes metadata/products live.
+*/
+
+function safeKey(s){ return String(s||'').replace(/[^a-z0-9_\\-]/ig,'_'); }
+function nowISO(){ return new Date().toISOString(); }
+
 const params = new URLSearchParams(window.location.search);
-const shopName = decodeURIComponent(params.get('shop'));
-const storedShopData = JSON.parse(localStorage.getItem(`shop_${shopName}`));
+const shopName = decodeURIComponent(params.get('shop') || (localStorage.getItem('currentShop') ? (JSON.parse(localStorage.getItem('currentShop')).shopName || '') : ''));
+
+// guard
+if(!shopName){
+  document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#fff">No shop specified.</div>';
+  throw new Error('No shop specified');
+}
+
 const productList = document.getElementById('productList');
 const inactiveNote = document.getElementById('inactiveNote');
-const cartKey = `cart_${shopName.replace(/\s+/g, '_')}`;
+const cartKey = 'cart_' + safeKey(shopName);
 
-function getCart() {
-  const c = localStorage.getItem(cartKey);
-  if (!c) { localStorage.setItem(cartKey, JSON.stringify([])); return []; }
-  try { return JSON.parse(c); } catch { return []; }
-}
-function saveCart(c) { localStorage.setItem(cartKey, JSON.stringify(c)); }
-function updateCartCount() {
-  const c = getCart();
-  const count = c.reduce((t, i) => t + i.qty, 0);
-  const el = document.getElementById('cartCount');
-  el.textContent = count;
-  el.style.display = count ? 'flex' : 'none';
+// load products from shop_products_<shopKey>
+function loadProducts(name){
+  try { return JSON.parse(localStorage.getItem('shop_products_'+safeKey(name)) || '[]'); } catch { return []; }
 }
 
-if (storedShopData) {
-  document.getElementById('shopLogo').src = storedShopData.logo || 'https://via.placeholder.com/100?text=SHOP';
-  document.getElementById('shopName').textContent = shopName;
-  document.getElementById('shopCategory').textContent = storedShopData.category || 'General';
-  const st = document.getElementById('shopStatus');
-  st.textContent = storedShopData.status || 'Inactive';
-  if (storedShopData.status === 'Inactive') {
-    st.classList.add('offline');
-    inactiveNote.style.display = 'block';
+// canonical meta loader (local_shops => shop_<name> => user: entries)
+function getLatestShopMeta(name){
+  try {
+    const arr = JSON.parse(localStorage.getItem('local_shops') || '[]');
+    const s = arr.find(x => (String(x.shopName || x.name || '').toLowerCase() === String(name).toLowerCase()));
+    if(s) return normalizeMeta(s);
+  } catch(e){ console.warn('local_shops parse error', e); }
+
+  try {
+    const s = JSON.parse(localStorage.getItem('shop_' + name) || 'null');
+    if(s) return normalizeMeta(s);
+  } catch(e){}
+
+  for(const k in localStorage){
+    if(!k.startsWith('user:')) continue;
+    try {
+      const u = JSON.parse(localStorage.getItem(k));
+      if(u && ((u.shopName || '').toLowerCase() === name.toLowerCase())){
+        return normalizeMeta({
+          shopName: u.shopName,
+          category: u.category || 'General',
+          logo: u.logo || '',
+          status: u.shopActive ? 'Active' : (u.status || 'Inactive'),
+          ownerEmail: u.email || null,
+          products: u.products || null
+        });
+      }
+    } catch(e){}
   }
+  return null;
+}
 
-  document.getElementById('shopHeader').textContent = shopName;
-  render(storedShopData.products || []);
+function normalizeMeta(raw){
+  return {
+    shopName: raw.shopName || raw.name || '',
+    category: raw.category || raw.cat || 'General',
+    logo: raw.logo || raw.image || '',
+    status: (typeof raw.status === 'string') ? raw.status : (raw.shopActive ? 'Active' : (raw.status || 'Inactive')),
+    ownerEmail: raw.ownerEmail || raw.shopkeeper || raw.owner || null,
+    location: raw.location || raw.loc || null,
+    products: raw.products || null,
+    raw: raw
+  };
+}
 
-  document.getElementById('searchBtn').addEventListener('click', () => {
-    const q = document.getElementById('searchInput').value.toLowerCase();
-    const filtered = (storedShopData.products || []).filter(p => p.name.toLowerCase().includes(q));
-    render(filtered);
-  });
+function isActive(meta){
+  if(!meta) return false;
+  if(meta.status && String(meta.status).toLowerCase() === 'active') return true;
+  if(meta.ownerEmail){
+    try {
+      const raw = localStorage.getItem('user:' + meta.ownerEmail);
+      if(raw){
+        const u = JSON.parse(raw);
+        if(u && u.shopActive) return true;
+      }
+    } catch(e){}
+  }
+  return false;
+}
 
-  function render(products) {
-    if (!products.length) {
-      productList.innerHTML = `<div class="no-products">🛍️ No goods available — coming soon!</div>`;
-      return;
+// If owner user record shows shopActive true but local_shops says Inactive, sync local_shops to Active
+function syncLocalShopsWithOwner(meta){
+  if(!meta || !meta.ownerEmail) return;
+  try {
+    const userRaw = localStorage.getItem('user:' + meta.ownerEmail);
+    if(!userRaw) return;
+    const user = JSON.parse(userRaw);
+    if(user && user.shopActive){
+      // check local_shops entry
+      let shops = JSON.parse(localStorage.getItem('local_shops') || '[]');
+      const idx = shops.findIndex(s => (String((s.shopName||s.name||'')).toLowerCase() === String(meta.shopName||meta.name||'').toLowerCase()));
+      if(idx !== -1 && String(shops[idx].status || '').toLowerCase() !== 'active'){
+        shops[idx].status = 'Active';
+        localStorage.setItem('local_shops', JSON.stringify(shops));
+        // notify other tabs
+        localStorage.setItem('last_shop_change', nowISO());
+      }
     }
-    const cart = getCart();
-    productList.innerHTML = products.map((p, i) => {
-      const item = cart.find(x => x.name === p.name);
-      const qty = item ? item.qty : 0;
-      return `
+  } catch(e){ console.warn('syncLocalShopsWithOwner failed', e); }
+}
+
+function getCart(){ try { return JSON.parse(localStorage.getItem(cartKey) || '[]'); } catch { return []; } }
+function saveCart(c){ localStorage.setItem(cartKey, JSON.stringify(c)); }
+function updateCartCount(){ const c = getCart(); const count = c.reduce((t,i)=> t + (i.qty||0), 0); const el = document.getElementById('cartCount'); el.textContent = count; el.style.display = count ? 'flex' : 'none'; }
+
+ // render products (unchanged visual arrangement)
+function renderProducts(products){
+  if(!products || !products.length){
+    productList.innerHTML = `<div class="no-products">🛍️ No goods available — coming soon!</div>`;
+    return;
+  }
+  const cart = getCart();
+  productList.innerHTML = products.map((p,i)=>{
+    const item = cart.find(x=> x.name === p.name);
+    const qty = item ? item.qty : 0;
+    return `
       <div class="product-card">
-        <img src="${p.img}" alt="${p.name}">
+        <img src="${p.img || 'https://via.placeholder.com/300'}" alt="${p.name}">
         <div class="product-name">${p.name}</div>
-        <div class="product-price">Ksh ${p.price}</div>
+        <div class="product-price">Ksh ${Number(p.price).toFixed(2)}</div>
         <div class="qty-controls" data-index="${i}">
           <button class="qty-btn minus">-</button>
           <span class="qty-num">${qty}</span>
           <button class="qty-btn plus">+</button>
         </div>
-      </div>`;
-    }).join('');
-  }
-
-  productList.addEventListener('click', e => {
-    if (storedShopData.status === 'Inactive') {
-      alert("This shop is currently inactive. You cannot add products.");
-      return;
-    }
-    const btn = e.target.closest('.qty-btn');
-    if (!btn) return;
-    const index = Number(btn.parentElement.dataset.index);
-    const product = storedShopData.products[index];
-    let cart = getCart();
-    let item = cart.find(x => x.name === product.name);
-    if (btn.classList.contains('plus')) {
-      if (item) item.qty++;
-      else cart.push({ ...product, qty: 1 });
-    } else if (btn.classList.contains('minus')) {
-      if (item) {
-        item.qty--;
-        if (item.qty <= 0) cart = cart.filter(x => x.name !== product.name);
-      }
-    }
-    saveCart(cart);
-    render(storedShopData.products);
-    updateCartCount();
-  });
-} else {
-  document.querySelector('.shop-info').innerHTML = `<p style="text-align:center;margin-top:40px;">❌ Shop not found or not yet active.</p>`;
+      </div>
+    `;
+  }).join('');
 }
 
-document.getElementById('cartIcon').addEventListener('click', () => {
+// refresh UI and product list from authoritative source
+function refreshMetaAndProducts(){
+  const meta = getLatestShopMeta(shopName);
+  if(!meta){
+    document.querySelector('.shop-info').innerHTML = `<p style="text-align:center;margin-top:40px;">❌ Shop not found.</p>`;
+    document.getElementById('productList').innerHTML = '';
+    return;
+  }
+
+  // if owner user record shows active but local_shops is out of date, sync it so explore and other pages agree
+  syncLocalShopsWithOwner(meta);
+
+  // update header and status badge based on authoritative data
+  document.getElementById('shopLogo').src = meta.logo || 'https://via.placeholder.com/100?text=SHOP';
+  document.getElementById('shopName').textContent = meta.shopName || shopName;
+  document.getElementById('shopCategory').textContent = meta.category || 'General';
+  const active = isActive(meta);
+  const stEl = document.getElementById('shopStatus');
+  stEl.textContent = active ? 'Active' : 'Inactive';
+  if(!active) stEl.classList.add('offline'); else stEl.classList.remove('offline');
+  inactiveNote.style.display = active ? 'none' : 'block';
+  document.getElementById('shopHeader').textContent = meta.shopName || shopName;
+
+  // products: prefer shop_products_<shopKey>, fallback to meta.products
+  let products = loadProducts(meta.shopName || shopName);
+  if((!products || !products.length) && meta.products) products = meta.products;
+  renderProducts(products);
+
+  // wire search button (prefix search within shop)
+  document.getElementById('searchBtn').onclick = ()=>{
+    const q = document.getElementById('searchInput').value.toLowerCase().trim();
+    const filtered = (products || []).filter(p => (p.name||'').toLowerCase().startsWith(q));
+    renderProducts(filtered);
+  };
+}
+
+// handle qty clicks, always check current authoritative status
+productList.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.qty-btn');
+  if(!btn) return;
+  const meta = getLatestShopMeta(shopName);
+  if(!isActive(meta)){
+    alert("This shop is currently inactive. You cannot add products.");
+    return;
+  }
+  const index = Number(btn.parentElement.dataset.index);
+  const prods = loadProducts(meta.shopName || shopName);
+  const product = prods[index];
+  if(!product) return;
+  let cart = getCart();
+  let item = cart.find(x => x.name === product.name);
+  if(btn.classList.contains('plus')){
+    if(item) item.qty++; else cart.push({...product, qty:1});
+  } else {
+    if(item){ item.qty--; if(item.qty <= 0) cart = cart.filter(x => x.name !== product.name); }
+  }
+  saveCart(cart);
+  // update UI
+  refreshMetaAndProducts();
+  updateCartCount();
+});
+
+// cart icon navigates to orders page
+document.getElementById('cartIcon').addEventListener('click', ()=>{
   window.location.href = `orders.html?shop=${encodeURIComponent(shopName)}`;
 });
+
+// When relevant keys change, refresh meta/products in-place (no full reload).
+window.addEventListener('storage', (e)=>{
+  if(!e.key) return;
+  // react when local_shops, shop_products_<shop>, user:, last_shop_change, shopsData change
+  if (e.key === 'local_shops' || e.key.startsWith('shop_products_') || e.key.startsWith('user:') || e.key === 'last_shop_change' || e.key === 'shopsData') {
+    setTimeout(()=> {
+      refreshMetaAndProducts();
+      updateCartCount();
+    }, 120);
+  }
+});
+
+// initial render
+refreshMetaAndProducts();
 updateCartCount();
 </script>
 </body>
