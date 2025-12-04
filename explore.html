@@ -4,7 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Time Shop Save — Explore</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Favicon (inline SVG, local-only) -->
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='100' height='100' rx='16' fill='url(%23g)'/><text x='50' y='60' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='28' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+  <link rel="apple-touch-icon"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g2' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='120' height='120' rx='20' fill='url(%23g2)'/><text x='60' y='78' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='38' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+  <meta name="theme-color" content="#7b2ff7">
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700,800&display=swap" rel="stylesheet">
   <script src="https://kit.fontawesome.com/a2d9b9f0d4.js" crossorigin="anonymous"></script>
   <style>
     :root {
@@ -86,6 +94,23 @@
     }
     .search-btn:hover {transform:scale(1.05);}
 
+    .controls-row {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      padding:0 16px 8px;
+    }
+    .loc-btn {
+      padding:8px 10px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.06);
+      background:transparent;
+      color:var(--muted);
+      cursor:pointer;
+      font-size:13px;
+    }
+    .loc-btn.active { color:var(--accent); border-color:var(--g1); }
+
     .categories {
       display:flex;
       overflow-x:auto;
@@ -151,9 +176,10 @@
       object-fit:cover;
       border:2px solid rgba(255,255,255,0.1);
     }
-    .shop-card.offline {opacity:0.75;}
+    .shop-card.offline {opacity:0.85;}
     .shop-name {font-size:14px;font-weight:600;margin-bottom:4px;text-align:center;}
     .shop-category {font-size:12px;color:var(--muted);margin-bottom:6px;text-align:center;}
+    .shop-distance {font-size:12px;color:var(--muted);margin-top:4px;}
     .status-badge {
       position:absolute;
       top:8px;
@@ -214,6 +240,12 @@
   <button class="search-btn" id="searchBtn">Search</button>
 </div>
 
+<div class="controls-row">
+  <button id="useLocationBtn" class="loc-btn">Use my location</button>
+  <div style="flex:1"></div>
+  <div id="locationStatus" style="color:var(--muted);font-size:13px"></div>
+</div>
+
 <div class="categories" id="categories"></div>
 <div class="shops" id="shopContainer"></div>
 
@@ -225,9 +257,11 @@
 </div>
 
 <script>
-// === CATEGORY LIST ===
+// Categories aligned with registration choices
 const categoriesData = [
   {name:'All', icon:'fas fa-globe'},
+  {name:'Shop', icon:'fas fa-store'},
+  {name:'Supermarket', icon:'fas fa-shopping-basket'},
   {name:'Grocery', icon:'fas fa-apple-alt'},
   {name:'Electronics', icon:'fas fa-tv'},
   {name:'Fashion', icon:'fas fa-tshirt'},
@@ -240,10 +274,17 @@ const categoriesData = [
   {name:'Hardware', icon:'fas fa-tools'},
   {name:'Gifts', icon:'fas fa-gift'},
   {name:'Mobile', icon:'fas fa-mobile-alt'},
-  {name:'Food', icon:'fas fa-hamburger'}
+  {name:'Food', icon:'fas fa-hamburger'},
+  {name:'Barbershop', icon:'fas fa-cut'},
+  {name:'Salon', icon:'fas fa-spa'},
+  {name:'Butchery', icon:'fas fa-drumstick-bite'},
+  {name:'Stationery', icon:'fas fa-pen-square'},
+  {name:'Jewelry', icon:'fas fa-gem'},
+  {name:'Pet Store', icon:'fas fa-paw'},
+  {name:'Liquor Store', icon:'fas fa-wine-glass-alt'},
+  {name:'Other', icon:'fas fa-ellipsis-h'}
 ];
 
-// === RENDER CATEGORIES ===
 const categoriesContainer = document.getElementById('categories');
 categoriesData.forEach(cat => {
   const div = document.createElement('div');
@@ -253,49 +294,176 @@ categoriesData.forEach(cat => {
   categoriesContainer.appendChild(div);
 });
 
-// === FETCH SHOPS DYNAMICALLY ===
+const shopContainer = document.getElementById('shopContainer');
+const searchInput = document.getElementById('searchInput');
+const searchBtn = document.getElementById('searchBtn');
+const useLocationBtn = document.getElementById('useLocationBtn');
+const locationStatus = document.getElementById('locationStatus');
+
+let userCoords = null;
+let lastFilter = 'All';
+
+function safeKey(s){ return String(s||'').replace(/[^a-z0-9_\-]/ig,'_'); }
+
 function getShopsFromStorage() {
-  return JSON.parse(localStorage.getItem("shopsData")) || [];
+  try { const ls = JSON.parse(localStorage.getItem('local_shops') || 'null'); if (Array.isArray(ls)) return ls; } catch {}
+  try { const sd = JSON.parse(localStorage.getItem('shopsData') || 'null'); if (Array.isArray(sd)) return sd; } catch {}
+  const res = [];
+  for (const k in localStorage) {
+    if (!k.startsWith('user:')) continue;
+    try {
+      const u = JSON.parse(localStorage.getItem(k));
+      if (u && u.role === 'shop') {
+        res.push({
+          shopName: u.shopName || u.name,
+          category: u.category || 'Other',
+          logo: u.logo || '',
+          status: (u.shopActive ? 'Active' : 'Inactive'),
+          ownerEmail: u.email,
+          location: u.location || null
+        });
+      }
+    } catch {}
+  }
+  return res;
 }
 
-// === RENDER SHOPS ===
-function renderShops(filter = 'All') {
-  const shopContainer = document.getElementById('shopContainer');
+function normLoc(loc) {
+  if(!loc) return null;
+  if(typeof loc === 'string') {
+    const p = loc.split(',').map(x=>Number(x.trim()));
+    if(p.length>=2 && !isNaN(p[0]) && !isNaN(p[1])) return { lat: p[0], lon: p[1] };
+    return null;
+  }
+  if(typeof loc === 'object') {
+    if('lat' in loc && 'lng' in loc) return { lat:Number(loc.lat), lon:Number(loc.lng) };
+    if('latitude' in loc && 'longitude' in loc) return { lat:Number(loc.latitude), lon:Number(loc.longitude) };
+    if('lat' in loc && 'lon' in loc) return { lat:Number(loc.lat), lon:Number(loc.lon) };
+  }
+  return null;
+}
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const toRad = v => v * Math.PI / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+function distanceText(km) {
+  if(km == null || km === Infinity) return '';
+  if(km < 1) return Math.round(km*1000) + ' m';
+  return km.toFixed(2) + ' km';
+}
+
+// notifications storage: array of {shopName, email, createdAt}
+function addNotifyRequest(shopName, email){
+  const key = 'notify_requests';
+  let arr = [];
+  try { arr = JSON.parse(localStorage.getItem(key) || '[]'); } catch {}
+  arr.push({ shopName, email, createdAt: new Date().toISOString() });
+  localStorage.setItem(key, JSON.stringify(arr));
+  // notify admin log as well
+  let adminLog = [];
+  try{ adminLog = JSON.parse(localStorage.getItem('admin_log')||'[]'); }catch{}
+  adminLog.unshift({ when:new Date().toISOString(), type:'notify_request', shopName, email });
+  localStorage.setItem('admin_log', JSON.stringify(adminLog));
+  // trigger storage event
+  localStorage.setItem('last_notify_change', new Date().toISOString());
+}
+
+function popNotifyRequestsForShopAndEmail(shopName, email){
+  const key = 'notify_requests';
+  let arr = [];
+  try { arr = JSON.parse(localStorage.getItem(key) || '[]'); } catch {}
+  const remaining = [];
+  const matched = [];
+  for(const r of arr){
+    if(r.shopName === shopName && r.email === email) matched.push(r);
+    else remaining.push(r);
+  }
+  localStorage.setItem(key, JSON.stringify(remaining));
+  return matched;
+}
+
+function renderShops(filter='All', searchTerm=''){
+  lastFilter = filter || lastFilter;
   shopContainer.innerHTML = '';
+  let shops = getShopsFromStorage() || [];
+  shops = shops.map(s => {
+    const shopName = s.shopName || s.name || '';
+    const category = s.category || 'Other';
+    const status = s.status || (s.shopActive ? 'Active' : 'Inactive') || 'Inactive';
+    const logo = s.logo || '';
+    const location = normLoc(s.location || s.loc || null);
+    return { ...s, shopName, category, status, logo, location };
+  });
 
-  const savedShops = getShopsFromStorage();
+  if(filter && filter !== 'All'){
+    shops = shops.filter(s => (s.category||'').toLowerCase() === filter.toLowerCase());
+  }
+  if(searchTerm){
+    const q = searchTerm.toLowerCase();
+    shops = shops.filter(s => (s.shopName||'').toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q));
+  }
 
-  const filtered = filter === 'All'
-    ? savedShops
-    : savedShops.filter(s => s.category === filter);
+  if(userCoords && userCoords.lat != null){
+    shops.forEach(s => {
+      if(s.location && typeof s.location.lat === 'number'){
+        s._distanceKm = haversineKm(userCoords.lat, userCoords.lon, s.location.lat, s.location.lon);
+      } else {
+        s._distanceKm = Infinity;
+      }
+    });
+    shops.sort((a,b) => (a._distanceKm||Infinity) - (b._distanceKm||Infinity));
+  }
 
-  if (filtered.length === 0) {
-    shopContainer.innerHTML = `<p style="text-align:center;opacity:0.6;">No shops found in this category.</p>`;
+  if(!shops.length){
+    shopContainer.innerHTML = `<p style="text-align:center;opacity:0.6;">No shops found${filter && filter !== 'All' ? ' in this category' : ''}.</p>`;
     return;
   }
 
-  filtered.forEach(shop => {
+  const currentUser = localStorage.getItem('rememberUser') || localStorage.getItem('tss_last_login') || null;
+  shops.forEach(shop => {
     const div = document.createElement('div');
     div.className = `shop-card ${shop.status === 'Inactive' ? 'offline' : ''}`;
+    const logo = shop.logo || 'https://via.placeholder.com/64?text=Shop';
+    const distHtml = (shop._distanceKm == null || shop._distanceKm === Infinity) ? '' : `<div class="shop-distance">${distanceText(shop._distanceKm)}</div>`;
     div.innerHTML = `
-      <img src="${shop.logo || 'https://via.placeholder.com/64?text=Shop'}" alt="${shop.name}">
-      <div class="shop-name">${shop.name}</div>
+      <img src="${logo}" alt="${shop.shopName}">
+      <div class="shop-name">${shop.shopName}</div>
       <div class="shop-category">${shop.category}</div>
+      ${distHtml}
       <div class="status-badge" style="background:${shop.status === 'Active' ? 'var(--active)' : 'var(--offline)'}">
         ${shop.status}
       </div>
     `;
 
-    if (shop.status === 'Inactive') {
+    if(shop.status === 'Inactive'){
       const btn = document.createElement('button');
       btn.className = 'notify-btn';
       btn.innerText = 'Notify me';
-      btn.addEventListener('click', () => alert(`✅ You’ll be notified when ${shop.name} is back online.`));
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        // ask for email (prefill if remembered)
+        let email = currentUser || prompt('Enter email to be notified when this shop is active:', currentUser || '');
+        if(!email) return alert('Notification not set (no email).');
+        email = String(email).trim().toLowerCase();
+        addNotifyRequest(shop.shopName, email);
+        alert(`✅ OK — we'll notify ${email} when ${shop.shopName} becomes active.`);
+      });
       div.appendChild(btn);
+
+      // inactive shops are NOT selectable: prevent opening shop.html
+      div.addEventListener('click', (e) => {
+        // do nothing; maybe show brief toast
+        alert(`${shop.shopName} is currently inactive. Use "Notify me" to be alerted when it becomes active.`);
+      });
     } else {
+      // active: clicking goes to shop.html
       div.addEventListener('click', () => {
-        localStorage.setItem("currentShop", JSON.stringify(shop));
-        window.location.href = `shop.html?shop=${encodeURIComponent(shop.name)}`;
+        localStorage.setItem('currentShop', JSON.stringify(shop));
+        window.location.href = `shop.html?shop=${encodeURIComponent(shop.shopName)}`;
       });
     }
 
@@ -303,57 +471,58 @@ function renderShops(filter = 'All') {
   });
 }
 
-// === SEARCH FUNCTION ===
-function performSearch() {
-  const term = document.getElementById('searchInput').value.toLowerCase();
-  const savedShops = getShopsFromStorage();
-  const filtered = savedShops.filter(s =>
-    s.name.toLowerCase().includes(term) ||
-    s.category.toLowerCase().includes(term)
-  );
+searchBtn.addEventListener('click', () => renderShops(lastFilter, searchInput.value.trim()));
+searchInput.addEventListener('keypress', e => { if(e.key === 'Enter') renderShops(lastFilter, searchInput.value.trim()); });
 
-  const shopContainer = document.getElementById('shopContainer');
-  shopContainer.innerHTML = '';
-
-  filtered.forEach(shop => {
-    const div = document.createElement('div');
-    div.className = `shop-card ${shop.status === 'Inactive' ? 'offline' : ''}`;
-    div.innerHTML = `
-      <img src="${shop.logo || 'https://via.placeholder.com/64?text=Shop'}" alt="${shop.name}">
-      <div class="shop-name">${shop.name}</div>
-      <div class="shop-category">${shop.category}</div>
-      <div class="status-badge" style="background:${shop.status === 'Active' ? 'var(--active)' : 'var(--offline)'}">
-        ${shop.status}
-      </div>
-    `;
-
-    if (shop.status === 'Inactive') {
-      const btn = document.createElement('button');
-      btn.className = 'notify-btn';
-      btn.innerText = 'Notify me';
-      btn.addEventListener('click', () => alert(`✅ You’ll be notified when ${shop.name} is active again.`));
-      div.appendChild(btn);
-    } else {
-      div.addEventListener('click', () => {
-        localStorage.setItem("currentShop", JSON.stringify(shop));
-        window.location.href = `shop.html?shop=${encodeURIComponent(shop.name)}`;
-      });
-    }
-
-    shopContainer.appendChild(div);
-  });
-}
-
-document.getElementById('searchBtn').addEventListener('click', performSearch);
-document.getElementById('searchInput').addEventListener('keypress', e => {
-  if(e.key === 'Enter') performSearch();
+useLocationBtn.addEventListener('click', () => {
+  if(!('geolocation' in navigator)){ alert('Geolocation not available'); return; }
+  locationStatus.textContent = 'Looking up...';
+  navigator.geolocation.getCurrentPosition(pos => {
+    userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+    locationStatus.textContent = `Location set • ${userCoords.lat.toFixed(3)}, ${userCoords.lon.toFixed(3)}`;
+    useLocationBtn.classList.add('active');
+    renderShops(lastFilter, searchInput.value.trim());
+  }, err => {
+    locationStatus.textContent = 'Location denied/unavailable';
+    alert('Location access denied or unavailable. Showing unsorted results.');
+  }, { timeout: 10000 });
 });
 
-// === AUTO REFRESH EVERY 3 SECONDS TO KEEP LIVE STATUS ===
-renderShops();
-setInterval(() => renderShops(), 3000);
-</script>
+// When local_shops is updated (shop becomes active), check notify_requests and alert users present on this browser
+function checkNotificationsOnStorageEvent(changedKey){
+  try {
+    const notifyReqs = JSON.parse(localStorage.getItem('notify_requests') || '[]');
+    const currentUser = localStorage.getItem('rememberUser') || localStorage.getItem('tss_last_login') || null;
+    if(!currentUser) return;
+    // find any notify requests for this user where the shop is now Active
+    const shops = getShopsFromStorage();
+    for(const req of notifyReqs){
+      if(req.email !== currentUser) continue;
+      const shopMeta = shops.find(s=> (s.shopName||s.name) === req.shopName);
+      if(shopMeta && (shopMeta.status === 'Active')){
+        // notify user (stay on explore page)
+        alert(`🔔 ${req.shopName} is now ACTIVE. You can open it from Explore.`);
+        // remove matching requests for this user/shop
+        popNotifyRequestsForShopAndEmail(req.shopName, currentUser);
+      }
+    }
+  } catch(e){ console.error(e); }
+}
 
+// Listen for storage changes to update list and to trigger notifications
+window.addEventListener('storage', (e) => {
+  // re-render if shops changed
+  if (!e.key || e.key.startsWith('local_shops') || e.key === 'last_shop_change' || e.key === 'last_notify_change' || e.key === 'shopsData' || e.key.startsWith('user:')) {
+    renderShops(lastFilter, searchInput.value.trim());
+    // check notify requests when shops change
+    checkNotificationsOnStorageEvent(e.key);
+  }
+});
+
+// initial render + periodic refresh
+renderShops();
+setInterval(()=> renderShops(lastFilter, searchInput.value.trim()), 3000);
+</script>
 
 </body>
 </html>
