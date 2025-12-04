@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Customer Register — Time Shop Save</title>
 
+<!-- Favicon Option A — Elegant gradient rounded-square with TSS -->
+<link rel="icon" type="image/svg+xml"
+      href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='100' height='100' rx='16' fill='url(%23g)'/><text x='50' y='60' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='36' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+<link rel="apple-touch-icon"
+      href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g2' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='120' height='120' rx='20' fill='url(%23g2)'/><text x='60' y='78' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='44' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+<meta name="theme-color" content="#7b2ff7">
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -123,13 +130,15 @@ button:hover {opacity:0.95;}
   </form>
 </div>
 
-<!-- Firebase SDK -->
+<!-- Firebase SDK (optional) -->
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js"></script>
 
 <script>
-// ✅ Replace with your Firebase config
+// Dual-mode register: prefer Firebase when configured; otherwise use localStorage fallback.
+// Also if Firebase fails, fall back to localStorage so site remains usable offline/local.
+
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -139,13 +148,63 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+let firebaseAvailable = false;
+try {
+  // Detect if firebase config is filled
+  if (typeof firebase !== 'undefined' && firebase && firebaseConfig && firebaseConfig.apiKey && !String(firebaseConfig.apiKey).includes('YOUR_')) {
+    firebase.initializeApp(firebaseConfig);
+    firebaseAvailable = !!(firebase.auth && firebase.firestore);
+  }
+} catch (e) {
+  console.warn('Firebase init skipped or failed:', e);
+  firebaseAvailable = false;
+}
+
+// local registration helper
+function saveLocalUser({ name, email, phone, password }) {
+  const key = 'user:' + String(email).toLowerCase();
+  const userObj = {
+    id: 'local_' + Date.now(),
+    name,
+    email,
+    phone,
+    password,
+    role: 'customer',
+    createdAt: new Date().toISOString()
+  };
+  localStorage.setItem(key, JSON.stringify(userObj));
+
+  // Append to tss_users_v1 for compatibility with other pages that read this demo list
+  try {
+    const arr = JSON.parse(localStorage.getItem('tss_users_v1') || '[]');
+    arr.push({ id: userObj.id, name: userObj.name, email: userObj.email, phone: userObj.phone, role: 'customer' });
+    localStorage.setItem('tss_users_v1', JSON.stringify(arr));
+  } catch (e) {}
+
+  // Set remembered session
+  localStorage.setItem('rememberUser', userObj.email);
+  localStorage.setItem('tss_last_login', userObj.email);
+  // ensure customer balance keys exist
+  if (!localStorage.getItem('customer_balance_' + userObj.email)) localStorage.setItem('customer_balance_' + userObj.email, '0');
+  if (!localStorage.getItem('customer_currency_' + userObj.email)) localStorage.setItem('customer_currency_' + userObj.email, 'KSH');
+
+  return userObj;
+}
 
 const form = document.getElementById("registerForm");
 const msg = document.getElementById("msg");
 const success = document.getElementById("success");
+
+function showError(text){
+  msg.textContent = text;
+  msg.classList.remove('hidden');
+  success.classList.add('hidden');
+}
+function showSuccess(text){
+  success.textContent = text;
+  success.classList.remove('hidden');
+  msg.classList.add('hidden');
+}
 
 form.addEventListener("submit", async e => {
   e.preventDefault();
@@ -158,39 +217,56 @@ form.addEventListener("submit", async e => {
   const password = document.getElementById("password").value;
 
   if (!name || !email || !phone || !password) {
-    msg.textContent = "Please fill all fields.";
-    msg.classList.remove("hidden");
+    showError("Please fill all fields.");
     return;
   }
 
-  try {
-    const cred = await auth.createUserWithEmailAndPassword(email, password);
-    const uid = cred.user.uid;
-
-    await db.collection("users").doc(uid).set({
-      name: name,
-      email: email,
-      phone: phone,
-      role: "customer",
-      dateRegistered: new Date().toISOString()
-    });
-
-    success.textContent = "Registration successful! Redirecting...";
-    success.classList.remove("hidden");
-
-    setTimeout(() => {
-      window.location.href = "customer-profile.html";
-    }, 1500);
-
-  } catch (err) {
-    msg.classList.remove("hidden");
-    if (err.code === "auth/email-already-in-use") {
-      msg.textContent = "This email is already registered.";
-    } else if (err.code === "auth/weak-password") {
-      msg.textContent = "Password should be at least 6 characters.";
-    } else {
-      msg.textContent = err.message;
+  // if firebase is available and configured, try cloud registration first
+  if (firebaseAvailable) {
+    try {
+      const cred = await firebase.auth().createUserWithEmailAndPassword(email, password);
+      const uid = cred.user.uid;
+      await firebase.firestore().collection("users").doc(uid).set({
+        name: name,
+        email: email,
+        phone: phone,
+        role: "customer",
+        dateRegistered: new Date().toISOString()
+      });
+      // set local remember
+      localStorage.setItem('rememberUser', email);
+      localStorage.setItem('tss_last_login', email);
+      showSuccess("Registration successful! Redirecting...");
+      setTimeout(() => window.location.href = "customer-profile.html", 1200);
+      return;
+    } catch (err) {
+      console.warn('Firebase registration failed, falling back to local:', err);
+      // if the error is that email is already used, but local user exists, inform user
+      if (err.code === "auth/email-already-in-use") {
+        // If local user exists, inform; otherwise still fallback to creating local user
+        if (localStorage.getItem('user:' + email)) {
+          showError("This email is already registered (local). Try logging in.");
+          return;
+        }
+        // else continue to fallback local registration
+      }
+      // continue to fallback below
     }
+  }
+
+  // Local fallback registration
+  try {
+    // If local user exists, do not overwrite
+    if (localStorage.getItem('user:' + email)) {
+      showError("This email is already registered locally. Please login.");
+      return;
+    }
+    saveLocalUser({ name, email, phone, password });
+    showSuccess("Registration successful (local)! Redirecting...");
+    setTimeout(() => window.location.href = "customer-profile.html", 900);
+  } catch (err) {
+    console.error(err);
+    showError("Registration failed: " + (err.message || String(err)));
   }
 });
 </script>
