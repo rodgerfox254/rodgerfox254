@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Customer Login — Time Shop Save</title>
 
+<!-- Favicon Option A — Elegant gradient rounded-square with TSS -->
+<link rel="icon" type="image/svg+xml"
+      href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='100' height='100' rx='16' fill='url(%23g)'/><text x='50' y='60' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='36' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+<link rel="apple-touch-icon"
+      href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g2' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='120' height='120' rx='20' fill='url(%23g2)'/><text x='60' y='78' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='44' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+<meta name="theme-color" content="#7b2ff7">
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -132,13 +139,13 @@ button:hover {opacity:0.95;}
   </form>
 </div>
 
-<!-- Firebase SDK -->
+<!-- Firebase SDK (optional) -->
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js"></script>
 
 <script>
-// ✅ Replace with your Firebase config
+// Dual-mode login: use Firebase if configured, else fallback to localStorage (user:<email> and tss_users_v1).
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -147,10 +154,16 @@ const firebaseConfig = {
   messagingSenderId: "YOUR_SENDER_ID",
   appId: "YOUR_APP_ID"
 };
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+let firebaseAvailable = false;
+try {
+  if (typeof firebase !== 'undefined' && firebase && firebaseConfig && firebaseConfig.apiKey && !String(firebaseConfig.apiKey).includes('YOUR_')) {
+    firebase.initializeApp(firebaseConfig);
+    firebaseAvailable = !!(firebase.auth && firebase.firestore);
+  }
+} catch (e) {
+  console.warn('Firebase init skipped or failed:', e);
+  firebaseAvailable = false;
+}
 
 const loginForm = document.getElementById("loginForm");
 const forgotForm = document.getElementById("forgotForm");
@@ -160,14 +173,39 @@ const loginMsg = document.getElementById("loginMsg");
 const resetMsg = document.getElementById("resetMsg");
 const resetSuccess = document.getElementById("resetSuccess");
 
-// 🔄 Auto redirect if already logged in
-auth.onAuthStateChanged(user => {
-  if (user) {
-    window.location.href = "customer-profile.html";
-  }
-});
+function showLoginError(text){
+  loginMsg.textContent = text; loginMsg.classList.remove('hidden');
+}
+function hideLoginError(){ loginMsg.classList.add('hidden'); }
 
-// --- Toggle Forgot Password ---
+function localAuthenticate(email, password){
+  // check user:<email> first
+  const raw = localStorage.getItem('user:' + email);
+  if (raw) {
+    try {
+      const u = JSON.parse(raw);
+      if (u.password === password || u.pass === password) {
+        // success
+        localStorage.setItem('rememberUser', email);
+        localStorage.setItem('tss_last_login', email);
+        return true;
+      }
+      return false;
+    } catch(e){ return false; }
+  }
+  // fallback: search tss_users_v1 for matching phone/email and password (legacy)
+  try {
+    const arr = JSON.parse(localStorage.getItem('tss_users_v1') || '[]');
+    const match = arr.find(x => (x.email === email || x.phone === email) && x.password === password);
+    if (match) {
+      localStorage.setItem('rememberUser', email);
+      localStorage.setItem('tss_last_login', email);
+      return true;
+    }
+  } catch(e){}
+  return false;
+}
+
 forgotPass.addEventListener("click", e => {
   e.preventDefault();
   loginForm.classList.add("hidden");
@@ -181,56 +219,81 @@ backToLogin.addEventListener("click", e => {
   resetSuccess.classList.add("hidden");
 });
 
-// --- LOGIN ---
 loginForm.addEventListener("submit", async e => {
   e.preventDefault();
-  loginMsg.classList.add("hidden");
+  hideLoginError();
   const email = document.getElementById("loginEmail").value.trim().toLowerCase();
   const password = document.getElementById("loginPassword").value;
 
-  try {
-    const cred = await auth.signInWithEmailAndPassword(email, password);
-    const snap = await db.collection("users").doc(cred.user.uid).get();
-
-    if (!snap.exists) {
-      loginMsg.textContent = "Profile not found. Please register.";
-      loginMsg.classList.remove("hidden");
+  // Try Firebase auth if available
+  if (firebaseAvailable) {
+    try {
+      await firebase.auth().signInWithEmailAndPassword(email, password);
+      // successful firebase login
+      localStorage.setItem('rememberUser', email);
+      localStorage.setItem('tss_last_login', email);
+      window.location.href = "customer-profile.html";
       return;
-    }
-
-    window.location.href = "customer-profile.html";
-
-  } catch (err) {
-    loginMsg.classList.remove("hidden");
-    if (err.code === "auth/user-not-found") {
-      loginMsg.textContent = "Email not found. Please register first.";
-    } else if (err.code === "auth/wrong-password") {
-      loginMsg.textContent = "Incorrect password. Try again.";
-    } else {
-      loginMsg.textContent = err.message;
+    } catch (err) {
+      console.warn('Firebase login failed; attempting local fallback', err);
+      if (err.code && (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password')) {
+        // fall through to local fallback attempt
+      } else {
+        // other firebase errors, show message but still try local fallback
+        console.warn(err);
+      }
     }
   }
+
+  // Local fallback
+  if (localAuthenticate(email, password)) {
+    window.location.href = "customer-profile.html";
+    return;
+  }
+
+  showLoginError('No matching account found. Try registering or check credentials.');
 });
 
-// --- FORGOT PASSWORD ---
+// Forgot password: if Firebase present, use that; otherwise do local hint (no email sending)
 forgotForm.addEventListener("submit", async e => {
   e.preventDefault();
-  resetMsg.classList.add("hidden");
-  resetSuccess.classList.add("hidden");
-  const email = document.getElementById("resetEmail").value.trim();
+  resetMsg.classList.add('hidden');
+  resetSuccess.classList.add('hidden');
+  const email = document.getElementById("resetEmail").value.trim().toLowerCase();
   if (!email) return;
-
-  try {
-    await auth.sendPasswordResetEmail(email);
-    resetSuccess.textContent = "Password reset email sent! Check your inbox.";
-    resetSuccess.classList.remove("hidden");
-  } catch (err) {
-    resetMsg.classList.remove("hidden");
-    if (err.code === "auth/user-not-found") {
-      resetMsg.textContent = "Email not found. Please check or register.";
-    } else {
-      resetMsg.textContent = err.message;
+  if (firebaseAvailable) {
+    try {
+      await firebase.auth().sendPasswordResetEmail(email);
+      resetSuccess.textContent = "Password reset email sent! Check your inbox.";
+      resetSuccess.classList.remove("hidden");
+      return;
+    } catch (err) {
+      resetMsg.textContent = err.message || 'Error sending reset email';
+      resetMsg.classList.remove('hidden');
+      return;
     }
+  }
+  // local fallback: if local user exists, allow setting a new password via prompt (best-effort)
+  const raw = localStorage.getItem('user:' + email);
+  if (raw) {
+    if (confirm('Local account found. Would you like to set a new password now?')) {
+      const np = prompt('Enter new password (will be stored locally):');
+      if (np) {
+        try {
+          const u = JSON.parse(raw); u.password = np; u.pass = np; localStorage.setItem('user:' + email, JSON.stringify(u));
+          resetSuccess.textContent = 'Local password updated. Please login.';
+          resetSuccess.classList.remove('hidden');
+          return;
+        } catch(e){ resetMsg.textContent = 'Could not update local password'; resetMsg.classList.remove('hidden'); return; }
+      }
+    } else {
+      resetMsg.textContent = 'Password reset cancelled.';
+      resetMsg.classList.remove('hidden');
+      return;
+    }
+  } else {
+    resetMsg.textContent = 'No Firebase configured and no local account found for that email.';
+    resetMsg.classList.remove('hidden');
   }
 });
 </script>
