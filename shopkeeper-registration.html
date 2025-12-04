@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Shopkeeper Registration — Time Shop Save</title>
+
+<!-- Favicon Option A — Elegant gradient rounded-square with TSS -->
+<link rel="icon" type="image/svg+xml"
+      href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='100' height='100' rx='16' fill='url(%23g)'/><text x='50' y='60' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='36' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+<link rel="apple-touch-icon"
+      href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g2' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='120' height='120' rx='20' fill='url(%23g2)'/><text x='60' y='78' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='44' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+<meta name="theme-color" content="#7b2ff7">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg1:#070416;
+  --g1:#7b2ff7; --g2:#ff6ec7; --g3:#2be7ff;
+  --text:#eaf3ff;
+  --muted:rgba(234,243,255,0.65);
+  --accent:linear-gradient(90deg,var(--g1),var(--g2),var(--g3));
+}
+*{box-sizing:border-box}
+body {
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:var(--bg1);
+  color:var(--text);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+.bg {
+  position:absolute;inset:0;
+  background:radial-gradient(600px 300px at 10% 20%, rgba(123,47,247,0.12), transparent),
+             radial-gradient(500px 240px at 90% 80%, rgba(43,231,255,0.08), transparent),
+             linear-gradient(180deg,#05020b 0%, #0b0630 50%, #07132a 100%);
+  z-index:-1;
+}
+.card {
+  width:92%;max-width:480px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px;
+  padding:32px 28px;
+  box-shadow:0 10px 34px rgba(0,0,0,0.55);
+  backdrop-filter:blur(10px);
+  position:relative;
+  margin: 36px 0;
+}
+.card h2 {
+  text-align:center;
+  font-size:22px;
+  margin-bottom:18px;
+  background:var(--accent);
+  -webkit-background-clip:text;
+  color:transparent;
+}
+form { display:flex; flex-direction:column; gap:13px; }
+input,select {
+  padding:11px 13px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.09);
+  background:rgba(255,255,255,0.05);
+  color:var(--text);
+  font-size:15px;
+}
+input:focus,select:focus {outline:none;border-color:var(--g2);}
+select {
+  font-weight:600;
+  background:rgba(123,47,247,0.11);
+  color:var(--text);
+  border:1.5px solid var(--g1);
+}
+select option {
+  background:var(--bg1);
+  color:var(--text);
+}
+button {
+  background:var(--accent);
+  color:#071126;
+  font-weight:700;
+  padding:13px;
+  border:0;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:15px;
+}
+button:hover {opacity:0.94;}
+.switch {
+  text-align:center;
+  font-size:13px;
+  color:var(--muted);
+  margin-top:8px;
+}
+.switch a {color:var(--g3);cursor:pointer;}
+.error {
+  text-align:center;
+  color:#ff4d4d;
+  font-size:13px;
+  margin-top:3px;
+}
+.success {
+  text-align:center;
+  color:#55ff99;
+  font-size:13px;
+  margin-top:3px;
+}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="card">
+  <h2>Shopkeeper Registration</h2>
+  <form id="registerForm" autocomplete="off">
+    <input id="regName" type="text" placeholder="Full name" required>
+    <input id="regEmail" type="email" placeholder="Email" required>
+    <input id="regPassword" type="password" placeholder="Password" required>
+    <input id="regShop" type="text" placeholder="Shop name" required>
+
+    <select id="regCategory" required>
+      <option value="">Select shop category</option>
+      <option value="Shop">Shop</option>
+      <option value="Supermarket">Supermarket</option>
+      <option value="Grocery">Grocery</option>
+      <option value="Electronics">Electronics</option>
+      <option value="Fashion">Fashion</option>
+      <option value="Pharmacy">Pharmacy</option>
+      <option value="Bakery">Bakery</option>
+      <option value="Restaurants">Restaurants</option>
+      <option value="Beauty">Beauty</option>
+      <option value="Sports">Sports</option>
+      <option value="Books">Books</option>
+      <option value="Hardware">Hardware</option>
+      <option value="Gifts">Gifts</option>
+      <option value="Mobile">Mobile</option>
+      <option value="Food">Food</option>
+      <option value="Barbershop">Barbershop</option>
+      <option value="Salon">Salon</option>
+      <option value="Butchery">Butchery</option>
+      <option value="Stationery">Stationery</option>
+      <option value="Jewelry">Jewelry</option>
+      <option value="Pet Store">Pet Store</option>
+      <option value="Liquor Store">Liquor Store</option>
+      <option value="Other">Other</option>
+    </select>
+
+    <button type="submit" id="registerBtn">Register Shop</button>
+    <div id="formMsg" class="error" style="display:none"></div>
+    <div id="formSuccess" class="success" style="display:none"></div>
+    <div class="switch">Already have an account? <a href="shopkeeper-login.html">Login</a></div>
+  </form>
+</div>
+
+<!-- Optional Firebase (Realtime Database) integration.
+     Paste your Firebase config below to enable real writes to /shops and counts.
+     If left as placeholders, the page will continue to work entirely with localStorage.
+-->
+<script>
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+/* Helper utilities */
+function safeKey(s){ return String(s||'').replace(/[^a-z0-9_\-]/ig,'_'); }
+function nowISO(){ return new Date().toISOString(); }
+function showError(msg){ const el = document.getElementById('formMsg'); el.textContent = msg; el.style.display = 'block'; }
+function hideError(){ const el = document.getElementById('formMsg'); el.style.display = 'none'; }
+function showSuccess(msg){ const el = document.getElementById('formSuccess'); el.textContent = msg; el.style.display = 'block'; }
+function hideSuccess(){ const el = document.getElementById('formSuccess'); el.style.display = 'none'; }
+
+/* Normalize location object */
+function normLoc(obj){
+  if(!obj) return null;
+  if(typeof obj === 'string'){
+    const p = obj.split(',').map(x=>Number(x.trim()));
+    if(p.length>=2 && !isNaN(p[0]) && !isNaN(p[1])) return { lat: p[0], lng: p[1] };
+    return null;
+  }
+  if(typeof obj === 'object'){
+    if('lat' in obj && 'lng' in obj) return { lat: Number(obj.lat), lng: Number(obj.lng) };
+    if('latitude' in obj && 'longitude' in obj) return { lat: Number(obj.latitude), lng: Number(obj.longitude) };
+    if('lat' in obj && 'lon' in obj) return { lat: Number(obj.lat), lng: Number(obj.lon) };
+  }
+  return null;
+}
+
+/* Try non-blocking geolocation capture for registration */
+let geo = null;
+if(navigator.geolocation){
+  navigator.geolocation.getCurrentPosition(pos=>{ geo = { lat: pos.coords.latitude, lng: pos.coords.longitude }; }, ()=>{ geo = null; });
+}
+
+document.getElementById('registerForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  hideError(); hideSuccess();
+
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPassword').value;
+  const shopName = document.getElementById('regShop').value.trim();
+  const category = document.getElementById('regCategory').value;
+
+  if(!name || !email || !password || !shopName || !category){
+    showError('Please fill all required fields.');
+    return;
+  }
+
+  if(localStorage.getItem('user:'+email)){
+    showError('Email already registered. Please login.');
+    return;
+  }
+
+  // create shopkeeper user (local)
+  const userObj = {
+    name, email, pass: password, role: 'shop',
+    shopName, category,
+    logo: 'https://via.placeholder.com/92?text='+encodeURIComponent(shopName.slice(0,2).toUpperCase()),
+    location: geo ? normLoc(geo) : null,
+    shopActive: false,
+    createdAt: nowISO()
+  };
+  localStorage.setItem('user:'+email, JSON.stringify(userObj));
+
+  // initialize empty products store
+  localStorage.setItem('shop_products_'+safeKey(shopName), JSON.stringify([]));
+
+  // add to local_shops index (normalized)
+  let shops = [];
+  try { shops = JSON.parse(localStorage.getItem('local_shops') || '[]'); } catch {}
+  const shopEntry = {
+    id: 's_'+Date.now(),
+    shopName,
+    category,
+    logo: userObj.logo,
+    status: 'Inactive',
+    ownerEmail: email,
+    location: userObj.location,
+    registeredAt: nowISO()
+  };
+  shops.push(shopEntry);
+  localStorage.setItem('local_shops', JSON.stringify(shops));
+
+  // admin log entry (local)
+  let adminLog = [];
+  try { adminLog = JSON.parse(localStorage.getItem('admin_log') || '[]'); } catch {}
+  adminLog.unshift({ when: nowISO(), type: 'shop_registered', shopName, ownerEmail: email, category });
+  localStorage.setItem('admin_log', JSON.stringify(adminLog));
+
+  // auto-login local
+  localStorage.setItem('rememberUser', email);
+  localStorage.setItem('tss_last_login', email);
+
+  // Attempt to write to Firebase Realtime Database if config is provided
+  const isFirebaseConfigured = !!(firebaseConfig && firebaseConfig.apiKey && !String(firebaseConfig.apiKey).includes('YOUR') && firebaseConfig.databaseURL);
+  if(isFirebaseConfigured){
+    try {
+      // load firebase modular SDK dynamically
+      const [{ initializeApp }, { getDatabase, ref, push, set, runTransaction }] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js')
+      ]);
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+
+      // push shop entry to /shops
+      const shopsRef = ref(db, 'shops');
+      const newRef = push(shopsRef);
+      await set(newRef, {
+        shopName: shopEntry.shopName,
+        category: shopEntry.category,
+        logo: shopEntry.logo,
+        status: shopEntry.status,
+        ownerEmail: shopEntry.ownerEmail,
+        location: shopEntry.location || null,
+        registeredAt: shopEntry.registeredAt
+      });
+
+      // increment counts/shops safely with transaction
+      const countsRef = ref(db, 'counts/shops');
+      await runTransaction(countsRef, (current) => (current || 0) + 1);
+
+      // record admin log in Firebase under /admin_log as well
+      const adminRef = ref(db, 'admin_log');
+      const newAdmin = push(adminRef);
+      await set(newAdmin, { when: nowISO(), type:'shop_registered', shopName, ownerEmail: email, category });
+
+    } catch (err) {
+      // if firebase write fails, continue with local write but write error to admin_log_local
+      let errs = [];
+      try{ errs = JSON.parse(localStorage.getItem('admin_errors')||'[]'); }catch{}
+      errs.unshift({ when: nowISO(), error: String(err.message || err), context:'firebase_write_shop' });
+      localStorage.setItem('admin_errors', JSON.stringify(errs));
+      console.warn('Firebase write failed (fallback to local only)', err);
+    }
+  }
+
+  // signal other tabs
+  localStorage.setItem('last_shop_change', nowISO());
+
+  showSuccess('Shop registered locally. Redirecting to your dashboard...');
+  setTimeout(()=> window.location.href = 'shopkeeper.html', 900);
+});
+</script>
+</body>
+</html>
