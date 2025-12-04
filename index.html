@@ -5,7 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Time Shop Save — Welcome</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Favicon Option A — Elegant gradient rounded-square with TSS -->
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='100' height='100' rx='16' fill='url(%23g)'/><text x='50' y='60' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='36' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+  <link rel="apple-touch-icon"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g2' x1='0' x2='1'><stop offset='0' stop-color='%237b2ff7'/><stop offset='1' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='120' height='120' rx='20' fill='url(%23g2)'/><text x='60' y='78' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='44' text-anchor='middle' fill='%23070416'>TSS</text></svg>">
+  <meta name="theme-color" content="#7b2ff7">
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700,800&display=swap" rel="stylesheet">
 
   <style>
     :root {
@@ -164,7 +171,7 @@
   </div>
 
   <div class="socials">
-    <a href="https://wa.me" target="_blank" title="WhatsApp">
+    <a href="https://wa.me/447842063898" target="_blank" title="WhatsApp">
       <img src="https://cdn-icons-png.flaticon.com/512/3670/3670051.png" width="26" height="26" alt="WhatsApp"/>
     </a>
     <a href="https://www.instagram.com" target="_blank" title="Instagram">
@@ -197,9 +204,18 @@
   </div>
 
   <div class="stats">
-    <div class="stat"><h4 id="users">0+</h4><span>Active Users</span></div>
-    <div class="stat"><h4 id="shops">0+</h4><span>Partner Shops</span></div>
-    <div class="stat"><h4 id="saves">0+</h4><span>Minutes Saved Daily</span></div>
+    <div class="stat">
+      <h4 id="users">0+</h4>
+      <span>Active Users</span>
+    </div>
+    <div class="stat">
+      <h4 id="shops">0+</h4>
+      <span>Partner Shops</span>
+    </div>
+    <div class="stat">
+      <h4 id="saves">0+</h4>
+      <span>Minutes Saved</span>
+    </div>
   </div>
 </section>
 
@@ -209,56 +225,256 @@
 
 <div id="splash"><div class="loader-box">TSS</div></div>
 
-<!-- Firebase SDKs -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+<!-- Splash screen logic (always last, always works) -->
+<script>
+  document.body.style.overflow = 'hidden';
+  setTimeout(function() {
+    document.getElementById('splash').classList.add('hidden');
+    document.body.style.overflow = '';
+  }, 1000);
 
-const firebaseConfig = {
-  apiKey: "your-api-key",
-  authDomain: "your-auth-domain",
-  projectId: "your-project-id",
-  storageBucket: "your-storage-bucket",
-  messagingSenderId: "your-messaging-sender-id",
-  appId: "your-app-id",
-  databaseURL: "your-database-url"
-};
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  // Splash screen
-  const splash = document.getElementById('splash');
-  setTimeout(()=> splash.classList.add('hidden'), 3000);
-
-  // Navigation
-  document.getElementById('btnHow').onclick = ()=> {
-    document.getElementById('how-section').scrollIntoView({behavior:'smooth'});
-  };
-  document.getElementById('btnStart').onclick = ()=> {
-    window.location.href = 'explore.html';
-  };
-  document.getElementById('btnCustomer').onclick = ()=> {
-    window.location.href = 'customer-login.html';
-  };
-  document.getElementById('btnShop').onclick = ()=> {
-    window.location.href = 'shopkeeper-login.html';
-  };
-
-  // Live Firebase data
-  const usersCount = document.getElementById('users');
-  const shopsCount = document.getElementById('shops');
-  const savesCount = document.getElementById('saves');
-
-  onValue(ref(db, 'counts/users'), (snap) => {
-    usersCount.textContent = (snap.val() || 0) + '+';
+  // Button navigation logic
+  document.addEventListener('DOMContentLoaded', function() {
+    // How it works
+    document.getElementById('btnHow').onclick = function() {
+      document.getElementById('how-section').scrollIntoView({behavior:'smooth'});
+    };
+    // Let's Begin
+    document.getElementById('btnStart').onclick = function() {
+      window.location.href = 'explore.html';
+    };
+    // Join as Customer
+    document.getElementById('btnCustomer').onclick = function() {
+      window.location.href = 'customer-login.html';
+    };
+    // Join as Shopkeeper
+    document.getElementById('btnShop').onclick = function() {
+      window.location.href = 'shopkeeper-login.html';
+    };
   });
-  onValue(ref(db, 'counts/shops'), (snap) => {
-    shopsCount.textContent = (snap.val() || 0) + '+';
+</script>
+
+<!-- LocalStorage-driven, authoritative counts and details -->
+<script>
+(function(){
+  const KEY_USERS = 'counts_users';
+  const KEY_SHOPS = 'counts_shops';
+  const KEY_MINUTES = 'counts_minutesSaved';
+
+  const DOM_USERS = document.getElementById('users');
+  const DOM_SHOPS = document.getElementById('shops');
+  const DOM_MINUTES = document.getElementById('saves');
+
+  function toNum(v){ return Number(v || 0) || 0; }
+  function n(v){ return Math.round(Number(v||0)); }
+
+  // Safe JSON parse
+  function tryParse(val){
+    try { return JSON.parse(val); } catch { return null; }
+  }
+
+  // Primary authoritative computation:
+  function computeCountsFromStorage(){
+    const customers = new Map(); // key -> { email, registeredAt, orders, minutes }
+    const shops = new Map();     // shopName -> { shopName, owner, orders, minutes }
+
+    // 1) Read local_shops array
+    const localShopsArr = tryParse(localStorage.getItem('local_shops')) || [];
+    if(Array.isArray(localShopsArr)){
+      localShopsArr.forEach(s => {
+        const name = s.shopName || s.name || ('shop_'+Math.random().toString(36).slice(2,7));
+        shops.set(String(name), { shopName: String(name), owner: s.ownerEmail || s.email || '', orders:0, minutes:0 });
+      });
+    }
+
+    // 2) Scan user: records
+    for(const k in localStorage){
+      if(!k.startsWith('user:')) continue;
+      const u = tryParse(localStorage.getItem(k));
+      if(!u) continue;
+      const email = u.email || (k.replace('user:',''));
+      if(u.role === 'shop' || u.shopName){
+        const name = u.shopName || u.name || email;
+        if(!shops.has(name)) shops.set(String(name), { shopName: String(name), owner: email, orders:0, minutes:0 });
+      } else {
+        const existing = customers.get(email) || { email, registeredAt: u.createdAt || u.createdAt || null, orders:0, minutes:0 };
+        customers.set(email, existing);
+      }
+    }
+
+    // 3) Scan other shop keys (fallback)
+    for(const k in localStorage){
+      if(k.startsWith('shopsData') || k.startsWith('shop:') || k.startsWith('shop_')){
+        const v = tryParse(localStorage.getItem(k));
+        if(Array.isArray(v)){
+          v.forEach(s => {
+            const name = s.shopName || s.name || s.id;
+            if(name && !shops.has(name)) shops.set(String(name), { shopName: String(name), owner: s.ownerEmail || '', orders:0, minutes:0 });
+          });
+        } else if(v && typeof v === 'object' && (v.shopName || v.name)){
+          const name = v.shopName || v.name;
+          if(name && !shops.has(name)) shops.set(String(name), { shopName: String(name), owner: v.ownerEmail||'', orders:0, minutes:0 });
+        }
+      }
+    }
+
+    // 4) Orders: gather minutesSaved and counts
+    for(const k in localStorage){
+      if(!k.startsWith('orders_') && !k.startsWith('shop_orders_')) continue;
+      const arr = tryParse(localStorage.getItem(k)) || [];
+      if(!Array.isArray(arr)) continue;
+      arr.forEach(o => {
+        if(!o) return;
+        if(k.startsWith('orders_')){
+          const custKey = k.replace('orders_','');
+          const custEmail = custKey;
+          if(!customers.has(custEmail)) customers.set(custEmail, { email: custEmail, registeredAt: null, orders:0, minutes:0 });
+          const cust = customers.get(custEmail);
+          cust.orders = (cust.orders || 0) + 1;
+          const m = Number(o.minutesSaved || o.minutes || o.savedMinutes || 0) || 0;
+          if(m) cust.minutes = (cust.minutes || 0) + m;
+        }
+        if(k.startsWith('shop_orders_')){
+          const shopKey = decodeURIComponent(k.replace('shop_orders_',''));
+          if(!shops.has(shopKey)) shops.set(shopKey, { shopName: shopKey, owner: '', orders:0, minutes:0 });
+          const shp = shops.get(shopKey);
+          shp.orders = (shp.orders || 0) + 1;
+          const m = Number(o.minutesSaved || o.minutes || o.savedMinutes || 0) || 0;
+          if(m) shp.minutes = (shp.minutes || 0) + m;
+        }
+      });
+    }
+
+    // Compute totals
+    let totalUsers = customers.size;
+    let totalShops = shops.size;
+    let totalMinutes = 0;
+    customers.forEach(c => { totalMinutes += Number(c.minutes || 0); });
+    shops.forEach(s => { totalMinutes += Number(s.minutes || 0); });
+
+    const customersList = Array.from(customers.values()).map(c => ({
+      email: c.email,
+      registeredAt: c.registeredAt || '',
+      orders: n(c.orders||0),
+      minutesSaved: n(c.minutes||0)
+    })).sort((a,b) => (b.orders - a.orders) || (b.minutesSaved - a.minutesSaved));
+
+    const shopsList = Array.from(shops.values()).map(s => ({
+      shopName: s.shopName,
+      owner: s.owner || '',
+      orders: n(s.orders||0),
+      minutesSaved: n(s.minutes||0)
+    })).sort((a,b) => (b.orders - a.orders) || (b.minutesSaved - a.minutesSaved));
+
+    return {
+      users: totalUsers,
+      shops: totalShops,
+      minutes: n(totalMinutes),
+      customersList,
+      shopsList
+    };
+  }
+
+  function writeCountsToStorage(counts){
+    try {
+      localStorage.setItem(KEY_USERS, String(counts.users));
+      localStorage.setItem(KEY_SHOPS, String(counts.shops));
+      localStorage.setItem(KEY_MINUTES, String(counts.minutes));
+    } catch(e){
+      console.warn('Could not write counts to localStorage', e);
+    }
+  }
+
+  function readCountsFromStorage(){
+    return {
+      users: toNum(localStorage.getItem(KEY_USERS)),
+      shops: toNum(localStorage.getItem(KEY_SHOPS)),
+      minutes: toNum(localStorage.getItem(KEY_MINUTES))
+    };
+  }
+
+  function formatCountWithPlus(n){
+    if(n === 0) return '0+';
+    if(n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M+';
+    if(n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,'') + 'k+';
+    return String(n) + '+';
+  }
+
+  // render numeric counts into UI (with +)
+  function renderCounts(){
+    const stored = readCountsFromStorage();
+    DOM_USERS.textContent = formatCountWithPlus(stored.users || 0);
+    DOM_SHOPS.textContent = formatCountWithPlus(stored.shops || 0);
+    DOM_MINUTES.textContent = formatCountWithPlus(stored.minutes || 0);
+  }
+
+  // Expose helper API and recompute logic
+  window.tssCounts = {
+    recompute: function(){
+      const computed = computeCountsFromStorage();
+      writeCountsToStorage({ users: computed.users, shops: computed.shops, minutes: computed.minutes });
+      renderCounts();
+      // store details for potential admin use (not shown on public page)
+      localStorage.setItem('counts_details_customers', JSON.stringify(computed.customersList));
+      localStorage.setItem('counts_details_shops', JSON.stringify(computed.shopsList));
+      return computed;
+    },
+    read: readCountsFromStorage,
+    set: function(type, value){
+      value = Number(value) || 0;
+      if(type === 'users') localStorage.setItem(KEY_USERS, String(value));
+      if(type === 'shops') localStorage.setItem(KEY_SHOPS, String(value));
+      if(type === 'minutes') localStorage.setItem(KEY_MINUTES, String(value));
+      renderCounts();
+    },
+    increment: function(type, by){
+      by = Number(by) || 1;
+      const cur = readCountsFromStorage();
+      if(type === 'users') this.set('users', cur.users + by);
+      if(type === 'shops') this.set('shops', cur.shops + by);
+      if(type === 'minutes') this.set('minutes', cur.minutes + by);
+    },
+    details: function(){
+      const customers = tryParse(localStorage.getItem('counts_details_customers')) || [];
+      const shops = tryParse(localStorage.getItem('counts_details_shops')) || [];
+      return { customers, shops };
+    },
+    resetAndReseed: function(){
+      localStorage.removeItem(KEY_USERS);
+      localStorage.removeItem(KEY_SHOPS);
+      localStorage.removeItem(KEY_MINUTES);
+      return this.recompute();
+    }
+  };
+
+  // Listen for storage changes and recompute when authoritative keys change
+  window.addEventListener('storage', function(e){
+    if(!e.key) return;
+    const sourceKeys = ['tss_users_v1','tss_shops_v1','local_shops','shopsData'];
+    if(sourceKeys.includes(e.key) || e.key.startsWith('user:') || e.key.startsWith('orders_') || e.key.startsWith('shop_orders_') || e.key.startsWith('cart_')) {
+      try { window.tssCounts.recompute(); } catch(err) { renderCounts(); }
+    } else if([KEY_USERS, KEY_SHOPS, KEY_MINUTES].includes(e.key)) {
+      renderCounts();
+    }
+  }, false);
+
+  // On first load compute authoritative counts
+  document.addEventListener('DOMContentLoaded', function(){
+    try {
+      const stored = window.tssCounts.read();
+      if(!stored.users || !stored.shops || !stored.minutes){
+        const computed = window.tssCounts.recompute();
+      } else {
+        renderCounts();
+        try { window.tssCounts.recompute(); } catch(e) {}
+      }
+    } catch(e){
+      try { window.tssCounts.recompute(); } catch(e2) { console.error('Counts init error', e2); }
+    }
+    // Keep counts fresh periodically
+    setInterval(()=> { try { window.tssCounts.recompute(); } catch(e){} }, 30000);
   });
-  onValue(ref(db, 'counts/minutesSaved'), (snap) => {
-    savesCount.textContent = (snap.val() || 0) + '+';
-  });
+})();
 </script>
 </body>
 </html>
